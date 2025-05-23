@@ -1,0 +1,98 @@
+Ej01a.pas: Falta la palabra reservada PROGRAM
+Ej01b.pas: Sobra la palabra reservada PROGRAM
+Ej02a.pas: Falta el identificador del programa
+Ej02b.pas: Sobra el identificador del programa
+Ej03a.pas: Falta la palabra reservada VAR
+Ej03b.pas: Sobra la palabra reservada VAR (depende de la definición de la gramática)
+Ej04a.pas: Falta coma en lista de identificadores
+Ej04b.pas: Sobra coma en lista de identificadores
+Ej05a.pas: Faltan dos puntos
+Ej05b.pas: Sobran dos puntos
+Ej06a.pas: Definición de tipo como palabra clave inválida
+Ej06b.pas: Definición de tipo como identificador
+Ej07a.pas: Falta punto y coma en declaración de variables
+Ej07b.pas: Sobra punto y coma en declaración de variables
+Ej08a.pas: Utiliza como variable declarada a una palabra clave
+Ej08b.pas: Utiliza como variable a una constante numérica
+Ej08c.pas: Utiliza como variable a una constante booleana: TRUE
+Ej08d.pas: Utiliza como variable a una constante booleana: FALSE
+Ej09a.pas: Falta el punto final del programa
+Ej09b.pas: Mala ubicación del punto final del programa
+Ej10a.pas: Falta declaración de PROCEDURE
+Ej10b.pas: Falta declaración de FUNCTION
+Ej10c.pas: Sobra declaración de PROCEDURE
+Ej10d.pas: Sobra declaración de FUNCTION
+Ej11a.pas: Falta punto y coma al final del encabezado del procedimiento
+Ej11b.pas: Falta dos puntos al final del encabezado de la función
+Ej11c.pas: Sobra punto y coma al final del encabezado del procedimiento
+Ej11d.pas: Sobra dos puntos al final del encabezado de la función
+Ej11e.pas: Sobra dos puntos al final del encabezado del procedimiento (definición tipo función)
+Ej12a.pas: Definición de procedimiento sin parámetros utilizando paréntesis
+Ej12b.pas: Definición de función sin parámetros utilizando paréntesis
+Ej13a.pas: Llamadas a subprograma con coma faltante en lista de identificadores
+Ej13b.pas: Llamadas a subprograma con coma sobrante en lista de identificadores
+Ej14a.pas: Pasaje de parámetros utilizando palabras claves
+Ej15a.pas: Pasaje de parámetros como expresiones numéricas
+Ej15b.pas: Pasaje de parámetros como constantes numéricas
+Ej16a.pas: Utilización del BEGIN sin el END respectivo
+Ej16b.pas: Utilización del END sin el BEGIN respectivo
+Ej16c.pas: Sobrante del BEGIN
+Ej16d.pas: Sobrante del END
+Ej16e.pas: Faltante del punto final
+Ej17a.pas: Incorrecto anidamiento BEGIN y END
+Ej18a.pas: Asignación de un valor a una función
+Ej18b.pas: Asignación de un valor a un procedimiento
+Ej19a.pas: Uso de operadores de tipo inválido
+Ej20a.pas: Término faltante en la expresión aritmética
+Ej20b.pas: Término sobrante en la expresión aritmética
+Ej20c.pas: Término faltante en la expresión lógica
+Ej20d.pas: Término sobrante en la expresión lógica
+Ej21a.pas: Relación de expresión sobrante
+Ej21b.pas: Relación de expresión faltante
+Ej22a.pas: Llamada a procedimientos con paréntesis y sin parámetros
+Ej22b.pas: Llamada a función con paréntesis y sin parámetros
+Ej23a.pas: Falta coma en lista de expresiones pasadas como parámetros
+Ej23b.pas: Sobra coma en lista de expresiones pasadas como parámetros
+Ej24a.pas: Expresión del tipo no booleano (depende de la definición de la gramática)
+Ej24b.pas: Variable de tipo no booleano
+Ej24c.pas: Expresión con faltante de relaciones
+Ej24d.pas: Expresión con sobrante de relaciones
+Ej25a.pas: Uso del THEN sin el IF respectivo
+Ej25b.pas: Uso del ELSE sin el IF respectivo
+Ej26a.pas: Uso del ELSE sin el THEN respectivo
+Ej27a.pas: Uso de sentencia compuesta entre THEN y ELSE con faltante de BEGIN y END
+Ej28a.pas: Sentencia ausente a continuación del THEN
+Ej28b.pas: Sentencia ausente a continuación del ELSE
+Ej29a.pas: Expresión ausente
+Ej29b.pas: Expresión de tipo numérica
+Ej30a.pas: Expresión del tipo no booleano (depende de la definición de la gramática)
+Ej30b.pas: Variable de tipo no booleano
+Ej30c.pas: Expresión con faltante de relaciones
+Ej30d.pas: Expresión con sobrante de relaciones
+Ej31a.pas: Uso de sentencia compuesta con faltante de BEGIN y END
+Ej31b.pas: Sentencia ausente (depende de la definición de la gramática)
+Ej32a.pas: Faltante del identificador
+Ej32b.pas: Sobrante del identificador
+Ej33a.pas: Faltante de la palabra reservada OF
+Ej33b.pas: Sobrante de la palabra reservada OF
+Ej34a.pas: Faltante de la palabra reservada END
+Ej34b.pas: Sobrante de la palabra reservada END
+Ej34c.pas: Sobrante de la palabra reservada ELSE (depende de la gramática)
+Ej35a.pas: Opción de tipo booleano (depende de la definición de la gramática)
+Ej36a.pas: Faltante de opciones
+Ej37a.pas: Uso del ELSE sin otras opciones presentes
+Ej37b.pas: Faltante del ELSE (depende de la definición de la gramática)
+Ej38a.pas: Uso de opciones sobre las que no se registran sentencias
+Ej39a.pas: Uso de opción ELSE sobre la que no se registran sentencias
+Ej40a.pas: Uso de la sentencia WRITE sin paréntesis (depende de la definición de la gramática)
+Ej40b.pas: Uso de la sentencia READ sin paréntesis (depende de la definición de la gramática)
+Ej41a.pas: Uso de la sentencia WRITE con constantes numéricas (depende de la definición de la gramática)
+Ej41b.pas: Uso de la sentencia WRITE con expresiones numéricas (depende de la definición de la gramática)
+Ej41c.pas: Uso de la sentencia WRITE con llamadas a funciones (depende de la definición de la gramática)
+Ej41d.pas: Uso de la sentencia WRITE con llamadas a procedimientos
+Ej42a.pas: Uso de la sentencia WRITE con constantes booleanas (depende de la definición de la gramática)
+Ej42b.pas: Uso de la sentencia WRITE con expresiones booleanas (depende de la definición de la gramática)
+Ej43a.pas: Uso de la sentencia READ con paréntesis y sin parámetros
+Ej43b.pas: Uso de la sentencia READ con constantes como parámetros
+Ej43c.pas: Uso de la sentencia READ con expresiones como parámetros
+Ej44a.pas: Uso de la sentencia READ con expresiones como parámetros

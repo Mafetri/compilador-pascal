@@ -1,5 +1,3 @@
-import sys
-
 # Global lookahead token and token stream
 lookahead = None
 tokens = []
@@ -27,7 +25,7 @@ def match(expected):
     if lookahead == expected:
         lookahead = next_token()
     else:
-        sys.exit(f"Syntax error: expected {expected}, found {lookahead}")
+        raise SyntaxError(f"Syntax error: expected {expected}, found {lookahead}")
 
 def programa():
     """<programa> ::= program <identificador> ; <bloque> ."""
@@ -89,7 +87,7 @@ def tipo():
     if lookahead in ['integer', 'boolean']:
         match(lookahead)
     else:
-        sys.exit("Syntax error: expected 'integer' or 'boolean'")
+        raise SyntaxError("Syntax error: expected 'integer' or 'boolean'")
 
 def parte_declaraciones_subrutinas():
     """<parte declaraciones subrutinas> ::= <declaracion de subrutina> <mas subrutinas>"""
@@ -110,7 +108,7 @@ def declaracion_de_subrutina():
     elif lookahead == 'function':
         declaracion_de_funcion()
     else:
-        sys.exit("Syntax error: expected 'procedure' or 'function'")
+        raise SyntaxError("Syntax error: expected 'procedure' or 'function'")
 
 def declaracion_de_procedimiento():
     """<declaracion de procedimiento> ::= procedure <identificador> <parte parametros formales> ; <bloque>"""
@@ -186,7 +184,7 @@ def sentencia():
     elif lookahead == 'write':
         sentencia_escritura()
     else:
-        sys.exit(f"Syntax error: invalid statement, found '{lookahead}'")
+        raise SyntaxError(f"Syntax error: invalid statement, found '{lookahead}'")
 
 def asignacion():
     """<asignacion> ::= <variable> := <expresion>"""
@@ -273,7 +271,7 @@ def relacion():
     if lookahead in ['=', '<>', '<', '>', '<=', '>=']:
         match(lookahead)
     else:
-        sys.exit("Syntax error: expected relational operator")
+        raise SyntaxError("Syntax error: expected relational operator")
 
 def expresion_simple():
     """<expresion simple> ::= <signo> <termino> <resto expresion simple> | <termino> <resto expresion simple>"""
@@ -287,7 +285,7 @@ def signo():
     if lookahead in ['+', '-']:
         match(lookahead)
     else:
-        sys.exit("Syntax error: expected '+' or '-'")
+        raise SyntaxError("Syntax error: expected '+' or '-'")
 
 def resto_expresion_simple():
     """<resto expresion simple> ::= <op aditivo> <termino> <resto expresion simple> | λ"""
@@ -301,7 +299,7 @@ def op_aditivo():
     if lookahead in ['+', '-', 'or']:
         match(lookahead)
     else:
-        sys.exit("Syntax error: expected additive operator")
+        raise SyntaxError("Syntax error: expected additive operator")
 
 def termino():
     """<termino> ::= <factor> <resto termino>"""
@@ -320,7 +318,7 @@ def op_multiplicativo():
     if lookahead in ['*', 'div', 'and']:
         match(lookahead)
     else:
-        sys.exit("Syntax error: expected multiplicative operator")
+        raise SyntaxError("Syntax error: expected multiplicative operator")
 
 def factor():
     """<factor> ::= <identificador> <factor identificador> | numero | ( <expresion> ) | not <factor> | true | false"""
@@ -339,7 +337,7 @@ def factor():
     elif lookahead in ['true', 'false']:
         match(lookahead)
     else:
-        sys.exit("Syntax error: invalid factor")
+        raise SyntaxError("Syntax error: invalid factor")
 
 def factor_identificador():
     """<factor identificador> ::= <parte parametros actuales> | λ"""

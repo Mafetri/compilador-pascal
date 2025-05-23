@@ -13,6 +13,8 @@ palabras_reservadas = {
     'else': 'else',
     'while': 'while',
     'do': 'do',
+    'read': 'read',
+    'write': 'write',
     'or': ('oper_logico', 'or'),
     'and': ('oper_logico', 'and'),
     'not': ('oper_logico', 'not')
@@ -154,9 +156,7 @@ class AnalizadorLexico:
                     self.state = "in_comment"
                     self.advance()
                 else:
-                    self.tokens.append(('ERROR', input_char, start_line, start_col))
-                    self.advance()
-                    continue
+                    raise SyntaxError(f"Lexical error: invalid character '{input_char}' at line {start_line}, column {start_col}")
 
             # Estado: saw_colon (procesa asignaciones de tipos y asignaciones)
             elif self.state == "saw_colon":
@@ -231,6 +231,7 @@ class AnalizadorLexico:
             print(f"{idx}: {token[1]}")
 
     def obtener_lista_para_parser(self):
+        """Genera una lista simplificada de tokens para el parser"""
         simplified = []
         for token in self.tokens:
             tipo = token[0]
@@ -245,6 +246,3 @@ class AnalizadorLexico:
 # Ejemplo de uso
 if __name__ == "__main__":
     analizador = AnalizadorLexico()
-    analizador.cargar_archivo("entrada.txt")
-    analizador.analizar()
-    analizador.mostrar_tokens()
