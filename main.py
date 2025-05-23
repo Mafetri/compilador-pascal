@@ -4,13 +4,13 @@ from sintactico import sintactico
 # 1. Analizador Lexico
 print('Analizador Lexico: \n')
 analizador = AnalizadorLexico()
-analizador.cargar_archivo("entrada.txt")
+analizador.cargar_archivo("./entrada.txt")
 analizador.analizar()
 analizador.mostrar_tokens()
-tokens_for_parser = analizador.obtener_lista_para_parser()
+tokens = analizador.obtener_lista_para_parser()
 
 # 2. Analizador Sintactico
 print('Analizador Lexico: \n')
-sintactico(tokens_for_parser)
+sintactico(tokens)
 
 print("Análisis sintáctico completado sin errores.")

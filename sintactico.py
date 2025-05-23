@@ -1,9 +1,7 @@
-# Predictive parser with file input for the given grammar
 import sys
-import re
 
 # Global lookahead token and token stream
-LAMlookahead = None
+lookahead = None
 tokens = []
 token_index = 0
 
@@ -33,134 +31,148 @@ def match(expected):
 
 def programa():
     """<programa> ::= program <identificador> ; <bloque> ."""
-    global lookahead
-    if lookahead == 'program':
-        match('program')
-        match('ident')
-        match(';')
-        bloque()
-        match('.')
-    else:
-        sys.exit("Syntax error: expected 'program'")
+    match('program')
+    match('ident')
+    match(';')
+    bloque()
+    match('.')
 
 def bloque():
-    """<bloque> ::= [<declaraciones de variables>] [<declaracion de subrutinas>] <sentencia compuesta>"""
-    global lookahead
+    """<bloque> ::= <parte declaraciones variables> <parte declaraciones subrutinas> <sentencia compuesta>
+       <bloque> ::= <parte declaraciones variables> <sentencia compuesta>
+       <bloque> ::= <parte declaraciones subrutinas> <sentencia compuesta>
+       <bloque> ::= <sentencia compuesta>"""
     if lookahead == 'var':
-        parte_de_declaraciones_de_variables()
-    if lookahead in ['procedure', 'function']:
-        declaracion_de_subrutinas()
-    sentencia_compuesta()
+        parte_declaraciones_variables()
+        if lookahead in ['procedure', 'function']:
+            parte_declaraciones_subrutinas()
+        sentencia_compuesta()
+    elif lookahead in ['procedure', 'function']:
+        parte_declaraciones_subrutinas()
+        sentencia_compuesta()
+    else:
+        sentencia_compuesta()
 
-def parte_de_declaraciones_de_variables():
-    """<parte de declaraciones de variables> ::= var <declaracion de variables> {; <declaracion de variables> };"""
-    global lookahead
+def parte_declaraciones_variables():
+    """<parte declaraciones variables> ::= var <declaracion de variables> <mas declaraciones>"""
     match('var')
     declaracion_de_variables()
-    while lookahead == ';':
-        match(';')
-        if lookahead == 'ident':
-            declaracion_de_variables()
-        else:
-            break
-    if lookahead != 'begin':
-        match(';')
+    mas_declaraciones()
+
+def mas_declaraciones():
+    """<mas declaraciones> ::= ; <declaracion de variables> <mas declaraciones> | ;"""
+    match(';')
+    if lookahead == 'ident':
+        declaracion_de_variables()
+        mas_declaraciones()
 
 def declaracion_de_variables():
     """<declaracion de variables> ::= <lista identificadores> : <tipo>"""
-    global lookahead
     lista_identificadores()
     match(':')
     tipo()
 
 def lista_identificadores():
-    """<lista identificadores> ::= <identificador> { , <identificador> }"""
-    global lookahead
+    """<lista identificadores> ::= <identificador> <mas identificadores>"""
     match('ident')
-    while lookahead == ',':
+    mas_identificadores()
+
+def mas_identificadores():
+    """<mas identificadores> ::= , <identificador> <mas identificadores> | λ"""
+    if lookahead == ',':
         match(',')
         match('ident')
+        mas_identificadores()
 
 def tipo():
     """<tipo> ::= integer | boolean"""
-    global lookahead
     if lookahead in ['integer', 'boolean']:
         match(lookahead)
     else:
         sys.exit("Syntax error: expected 'integer' or 'boolean'")
 
-def declaracion_de_subrutinas():
-    """<declaracion de subrutina> ::= { <declaracion de procedimiento> ; | <declaracion de funcion> ; }"""
-    global lookahead
-    while lookahead in ['procedure', 'function']:
-        if lookahead == 'procedure':
-            declaracion_de_procedimiento()
-            match(';')
-        elif lookahead == 'function':
-            declaracion_de_funcion()
-            match(';')
+def parte_declaraciones_subrutinas():
+    """<parte declaraciones subrutinas> ::= <declaracion de subrutina> <mas subrutinas>"""
+    declaracion_de_subrutina()
+    mas_subrutinas()
+
+def mas_subrutinas():
+    """<mas subrutinas> ::= ; <declaracion de subrutina> <mas subrutinas> | λ"""
+    if lookahead == ';':
+        match(';')
+        declaracion_de_subrutina()
+        mas_subrutinas()
+
+def declaracion_de_subrutina():
+    """<declaracion de subrutina> ::= <declaracion de procedimiento> | <declaracion de funcion>"""
+    if lookahead == 'procedure':
+        declaracion_de_procedimiento()
+    elif lookahead == 'function':
+        declaracion_de_funcion()
+    else:
+        sys.exit("Syntax error: expected 'procedure' or 'function'")
 
 def declaracion_de_procedimiento():
-    """<declaracion de procedimiento> ::= procedure <identificador> [ <parámetros formales> ] ; <bloque>"""
-    global lookahead
+    """<declaracion de procedimiento> ::= procedure <identificador> <parte parametros formales> ; <bloque>"""
     match('procedure')
     match('ident')
-    if lookahead == '(':
-        parámetros_formales()
+    parte_parametros_formales()
     match(';')
     bloque()
 
 def declaracion_de_funcion():
-    """<declaracion de funcion> ::= function <identificador> [ <parámetros formales> ] : <tipo> ; <bloque>"""
-    global lookahead
+    """<declaracion de funcion> ::= function <identificador> <parte parametros formales> : <tipo> ; <bloque>"""
     match('function')
     match('ident')
-    if lookahead == '(':
-        parámetros_formales()
+    parte_parametros_formales()
     match(':')
     tipo()
     match(';')
     bloque()
 
-def parámetros_formales():
-    """<parámetros formales> ::= ( <seccion de parámetros formales> { ; <seccion de parámetros formales> } )"""
-    global lookahead
-    match('(')
-    seccion_de_parámetros_formales()
+def parte_parametros_formales():
+    """<parte parametros formales> ::= ( <seccion de parametros formales> <mas secciones parametros> ) | λ"""
+    if lookahead == '(':
+        match('(')
+        seccion_de_parametros_formales()
+        mas_secciones_parametros()
+        match(')')
+
+def mas_secciones_parametros():
+    """<mas secciones parametros> ::= ; <seccion de parametros formales> <mas secciones parametros> | λ"""
     while lookahead == ';':
         match(';')
-        seccion_de_parámetros_formales()
-    match(')')
+        seccion_de_parametros_formales()
 
-def seccion_de_parámetros_formales():
-    """<seccion de parámetros formales> ::= <lista de identificadores> : <tipo>"""
-    global lookahead
+def seccion_de_parametros_formales():
+    """<seccion de parametros formales> ::= <lista de identificadores> : <tipo>"""
     lista_identificadores()
     match(':')
     tipo()
 
 def sentencia_compuesta():
-    """<sentencia compuesta> ::= begin <sentencia> { ; <sentencia> } end"""
-    global lookahead
+    """<sentencia compuesta> ::= begin <sentencia> <mas sentencias> end"""
     match('begin')
     sentencia()
-    while lookahead == ';':
+    mas_sentencias()
+    match('end')
+
+def mas_sentencias():
+    """<mas sentencias> ::= ; <sentencia> <mas sentencias> | λ"""
+    if lookahead == ';':
         match(';')
         sentencia()
-    match('end')
+        mas_sentencias()
 
 def sentencia():
     """<sentencia> ::= <asignacion> | <llamada a procedimiento> | <sentencia compuesta> | 
                        <sentencia condicional> | <sentencia repetitiva> | <sentencia lectura> | 
                        <sentencia escritura>"""
-    global lookahead
     if lookahead == 'ident':
-        current_index = token_index 
-        next_tok = tokens[current_index] if current_index < len(tokens) else None
-        if next_tok == ':=':
+        # Look ahead to distinguish between assignment and procedure call
+        next_idx = token_index
+        if next_idx < len(tokens) and tokens[next_idx] == ':=':
             asignacion()
-        elif next_tok == '(':
-            llamada_a_procedimiento()
         else:
             llamada_a_procedimiento()
     elif lookahead == 'begin':
@@ -176,44 +188,37 @@ def sentencia():
     else:
         sys.exit(f"Syntax error: invalid statement, found '{lookahead}'")
 
-
 def asignacion():
     """<asignacion> ::= <variable> := <expresion>"""
-    global lookahead
     variable()
     match(':=')
     expresion()
 
 def variable():
     """<variable> ::= <identificador>"""
-    global lookahead
     match('ident')
 
 def llamada_a_procedimiento():
-    """<llamada a procedimiento> ::= <identificador> [ ( <lista de expresiones> ) ]"""
-    global lookahead
+    """<llamada a procedimiento> ::= <identificador> <parte parametros actuales>"""
     match('ident')
-    if lookahead == '(':
-        match('(')
-        lista_de_expresiones()
-        match(')')
+    parte_parametros_actuales()
 
 def sentencia_condicional():
-    """<sentencia condicional> ::= if <expresion> then <sentencia> [ else <sentencia> ]"""
-    global lookahead
+    """<sentencia condicional> ::= if <expresion> then <sentencia> <parte else>"""
     match('if')
     expresion()
     match('then')
     sentencia()
-    # match(';')                                                                                          # AGREGUE ESTO PARA QUE FUNCIONEEEEEE
+    parte_else()
+
+def parte_else():
+    """<parte else> ::= else <sentencia> | λ"""
     if lookahead == 'else':
         match('else')
         sentencia()
-        # print(token_index, lookahead)
 
 def sentencia_repetitiva():
     """<sentencia repetitiva> ::= while <expresion> do <sentencia>"""
-    global lookahead
     match('while')
     expresion()
     match('do')
@@ -221,7 +226,6 @@ def sentencia_repetitiva():
 
 def sentencia_lectura():
     """<sentencia lectura> ::= read ( <identificador> )"""
-    global lookahead
     match('read')
     match('(')
     match('ident')
@@ -229,67 +233,100 @@ def sentencia_lectura():
 
 def sentencia_escritura():
     """<sentencia escritura> ::= write ( <identificador> )"""
-    global lookahead
     match('write')
     match('(')
     match('ident')
     match(')')
 
+def parte_parametros_actuales():
+    """<parte parametros actuales> ::= ( <lista de expresiones> ) | λ"""
+    if lookahead == '(':
+        match('(')
+        lista_de_expresiones()
+        match(')')
+
 def lista_de_expresiones():
-    """<lista de expresiones> ::= <expresion> { , <expresion> }"""
-    global lookahead
+    """<lista de expresiones> ::= <expresion> <mas expresiones>"""
     expresion()
-    while lookahead == ',':
+    mas_expresiones()
+
+def mas_expresiones():
+    """<mas expresiones> ::= , <expresion> <mas expresiones> | λ"""
+    if lookahead == ',':
         match(',')
         expresion()
+        mas_expresiones()
 
 def expresion():
-    """<expresion> ::= <expresion simple> [ <relacion> <expresion simple> ]"""
-    global lookahead
+    """<expresion> ::= <expresion simple> <parte relacion>"""
     expresion_simple()
+    parte_relacion()
+
+def parte_relacion():
+    """<parte relacion> ::= <relacion> <expresion simple> | λ"""
     if lookahead in ['=', '<>', '<', '>', '<=', '>=']:
         relacion()
         expresion_simple()
 
 def relacion():
     """<relacion> ::= = | <> | < | > | <= | >="""
-    global lookahead
     if lookahead in ['=', '<>', '<', '>', '<=', '>=']:
         match(lookahead)
     else:
         sys.exit("Syntax error: expected relational operator")
 
 def expresion_simple():
-    """<expresion simple> ::= [+|-] <termino> { (+|-|or) <termino> }"""
-    global lookahead
+    """<expresion simple> ::= <signo> <termino> <resto expresion simple> | <termino> <resto expresion simple>"""
+    if lookahead in ['+', '-']:
+        signo()
+    termino()
+    resto_expresion_simple()
+
+def signo():
+    """<signo> ::= + | -"""
     if lookahead in ['+', '-']:
         match(lookahead)
-    termino()
-    while lookahead in ['+', '-', 'or']:
-        match(lookahead)
+    else:
+        sys.exit("Syntax error: expected '+' or '-'")
+
+def resto_expresion_simple():
+    """<resto expresion simple> ::= <op aditivo> <termino> <resto expresion simple> | λ"""
+    if lookahead in ['+', '-', 'or']:
+        op_aditivo()
         termino()
+        resto_expresion_simple()
+
+def op_aditivo():
+    """<op aditivo> ::= + | - | or"""
+    if lookahead in ['+', '-', 'or']:
+        match(lookahead)
+    else:
+        sys.exit("Syntax error: expected additive operator")
 
 def termino():
-    """<termino> ::= <factor> { (*|div|and) <factor> }"""
-    global lookahead
+    """<termino> ::= <factor> <resto termino>"""
     factor()
-    while lookahead in ['*', 'div', 'and']:
-        match(lookahead)
+    resto_termino()
+
+def resto_termino():
+    """<resto termino> ::= <op multiplicativo> <factor> <resto termino> | λ"""
+    if lookahead in ['*', 'div', 'and']:
+        op_multiplicativo()
         factor()
+        resto_termino()
+
+def op_multiplicativo():
+    """<op multiplicativo> ::= * | div | and"""
+    if lookahead in ['*', 'div', 'and']:
+        match(lookahead)
+    else:
+        sys.exit("Syntax error: expected multiplicative operator")
 
 def factor():
-    """<factor> ::= <identificador> | numero | <llamada a funcion> | ( <expresion> ) | 
-                       not <factor> | true | false"""
-    global lookahead, token_index, tokens
+    """<factor> ::= <identificador> <factor identificador> | numero | ( <expresion> ) | not <factor> | true | false"""
     if lookahead == 'ident':
-        if token_index < len(tokens):
-            next_tok = tokens[token_index]
-            if next_tok == '(':
-                llamada_a_funcion()
-            else:
-                match('ident')
-        else:
-            match('ident')
+        match('ident')
+        factor_identificador()
     elif lookahead == 'numero':
         match('numero')
     elif lookahead == '(':
@@ -304,12 +341,12 @@ def factor():
     else:
         sys.exit("Syntax error: invalid factor")
 
+def factor_identificador():
+    """<factor identificador> ::= <parte parametros actuales> | λ"""
+    if lookahead == '(':
+        parte_parametros_actuales()
 
 def llamada_a_funcion():
-    """<llamada a funcion> ::= <identificador> [ ( <lista de expresiones> ) ]"""
-    global lookahead
+    """<llamada a funcion> ::= <identificador> <parte parametros actuales>"""
     match('ident')
-    if lookahead == '(':
-        match('(')
-        lista_de_expresiones()
-        match(')')
+    parte_parametros_actuales()

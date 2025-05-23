@@ -225,10 +225,10 @@ class AnalizadorLexico:
 
     def mostrar_tokens(self):
         """Muestra la lista de tokens generados"""
-        for token in self.tokens:
-            print(f"(lin. {token[2]:03}, col. {token[3]:03})  {token[1]:<15} ->  {token[0]}" + (f", {token[4]}" if len(token) == 5 else ""))
-        # for idx, token in enumerate(self.tokens):
-        #     print(f"{idx}: {token[1]}")
+        # for token in self.tokens:
+        #     print(f"(lin. {token[2]:03}, col. {token[3]:03})  {token[1]:<15} ->  {token[0]}" + (f", {token[4]}" if len(token) == 5 else ""))
+        for idx, token in enumerate(self.tokens):
+            print(f"{idx}: {token[1]}")
 
     def obtener_lista_para_parser(self):
         simplified = []
