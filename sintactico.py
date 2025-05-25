@@ -167,12 +167,7 @@ def sentencia():
                        <sentencia condicional> | <sentencia repetitiva> | <sentencia lectura> | 
                        <sentencia escritura>"""
     if lookahead == 'ident':
-        # Look ahead to distinguish between assignment and procedure call
-        next_idx = token_index
-        if next_idx < len(tokens) and tokens[next_idx] == ':=':
-            asignacion()
-        else:
-            llamada_a_procedimiento()
+        sentencia_ident()
     elif lookahead == 'begin':
         sentencia_compuesta()
     elif lookahead == 'if':
@@ -186,20 +181,16 @@ def sentencia():
     else:
         raise SyntaxError(f"Syntax error: invalid statement, found '{lookahead}'")
 
-def asignacion():
-    """<asignacion> ::= <variable> := <expresion>"""
-    variable()
-    match(':=')
-    expresion()
-
-def variable():
-    """<variable> ::= <identificador>"""
+def sentencia_ident():
+    """<sentencia ident> ::= := <expresion> | <parte de parametros actuales>"""
     match('ident')
-
-def llamada_a_procedimiento():
-    """<llamada a procedimiento> ::= <identificador> <parte parametros actuales>"""
-    match('ident')
-    parte_parametros_actuales()
+    if lookahead == ':=':
+        match(':=')
+        expresion()
+    elif lookahead == '(':
+        parte_parametros_actuales()
+    else:
+        raise SyntaxError(f"Syntax error: expected assignment or procedure call, found '{lookahead}'")
 
 def sentencia_condicional():
     """<sentencia condicional> ::= if <expresion> then <sentencia> <parte else>"""
@@ -343,8 +334,3 @@ def factor_identificador():
     """<factor identificador> ::= <parte parametros actuales> | λ"""
     if lookahead == '(':
         parte_parametros_actuales()
-
-def llamada_a_funcion():
-    """<llamada a funcion> ::= <identificador> <parte parametros actuales>"""
-    match('ident')
-    parte_parametros_actuales()
