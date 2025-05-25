@@ -17,7 +17,9 @@ palabras_reservadas = {
     'write': 'write',
     'or': ('oper_logico', 'or'),
     'and': ('oper_logico', 'and'),
-    'not': ('oper_logico', 'not')
+    'not': ('oper_logico', 'not'),
+    'true': 'true',  # Added for boolean literals
+    'false': 'false'  # Added for boolean literals
 }
 
 simbolos = {
@@ -42,7 +44,6 @@ simbolos = {
 
 class AnalizadorLexico:
     def __init__(self):
-        self.tokens = []
         self.linea = 1
         self.columna = 1
         self.posicion = 0
@@ -80,8 +81,8 @@ class AnalizadorLexico:
             return char
         return None
 
-    def analizar(self):
-        """Procesa el texto y genera la lista de tokens"""
+    def next_token(self):
+        """Genera y devuelve el siguiente token para el parser"""
         while self.posicion < len(self.texto):
             input_char = self.texto[self.posicion]
             start_line, start_col = self.linea, self.columna
@@ -105,45 +106,35 @@ class AnalizadorLexico:
                     self.current_token = input_char
                     self.advance()
                 elif input_char == ';':
-                    self.tokens.append(('punto_coma', ';', start_line, start_col))
                     self.advance()
-                    continue
+                    return 'punto_coma'
                 elif input_char == ',':
-                    self.tokens.append(('coma', ',', start_line, start_col))
                     self.advance()
-                    continue
+                    return 'coma'
                 elif input_char == '.':
-                    self.tokens.append(('punto', '.', start_line, start_col))
                     self.advance()
-                    continue
+                    return 'punto'
                 elif input_char == '(':
-                    self.tokens.append(('parentesis_izq', '(', start_line, start_col))
                     self.advance()
-                    continue
+                    return 'parentesis_izq'
                 elif input_char == ')':
-                    self.tokens.append(('parentesis_der', ')', start_line, start_col))
                     self.advance()
-                    continue
+                    return 'parentesis_der'
                 elif input_char == '+':
-                    self.tokens.append(('oper_aritmetico', '+', start_line, start_col, 'suma'))
                     self.advance()
-                    continue
+                    return '+'
                 elif input_char == '-':
-                    self.tokens.append(('oper_aritmetico', '-', start_line, start_col, 'resta'))
                     self.advance()
-                    continue
+                    return '-'
                 elif input_char == '*':
-                    self.tokens.append(('oper_aritmetico', '*', start_line, start_col, 'mult'))
                     self.advance()
-                    continue
+                    return '*'
                 elif input_char == '/':
-                    self.tokens.append(('oper_aritmetico', '/', start_line, start_col, 'div'))
                     self.advance()
-                    continue
+                    return 'div'
                 elif input_char == '=':
-                    self.tokens.append(('oper_relacional', '=', start_line, start_col, 'igual'))
                     self.advance()
-                    continue
+                    return '='
                 elif input_char == '<':
                     self.state = "saw_less_than"
                     self.current_token = input_char
@@ -158,91 +149,89 @@ class AnalizadorLexico:
                 else:
                     raise SyntaxError(f"Lexical error: invalid character '{input_char}' at line {start_line}, column {start_col}")
 
-            # Estado: saw_colon (procesa asignaciones de tipos y asignaciones)
+            # Estado: saw_colon
             elif self.state == "saw_colon":
                 if input_char == '=':
-                    self.tokens.append(('asignacion', ':=', start_line, start_col))
                     self.advance()
+                    self.state = "start"
+                    return 'asignacion'
                 else:
-                    self.tokens.append(('asignacion_de_tipo', ':', start_line, start_col))
-                self.state = "start"
-                continue
+                    self.state = "start"
+                    return 'asignacion_de_tipo'
 
-            # Estado: in_comment (procesa comentarios)
+            # Estado: in_comment
             elif self.state == "in_comment":
                 if input_char == '}':
                     self.state = "start"
                 self.advance()
                 continue
 
-            # Estado: saw_less_than (procesa <, <=, <>)
+            # Estado: saw_less_than
             elif self.state == "saw_less_than":
                 if input_char == '=':
-                    self.tokens.append(('oper_relacional', '<=', start_line, start_col, 'menor_igual'))
                     self.advance()
+                    self.state = "start"
+                    return '<='
                 elif input_char == '>':
-                    self.tokens.append(('oper_relacional', '<>', start_line, start_col, 'distinto'))
                     self.advance()
+                    self.state = "start"
+                    return '<>'
                 else:
-                    self.tokens.append(('oper_relacional', '<', start_line, start_col, 'menor'))
-                self.state = "start"
-                continue
+                    self.state = "start"
+                    return '<'
 
-            # Estado: saw_greater_than (procesa >, >=)
+            # Estado: saw_greater_than
             elif self.state == "saw_greater_than":
                 if input_char == '=':
-                    self.tokens.append(('oper_relacional', '>=', start_line, start_col, 'mayor_igual'))
                     self.advance()
+                    self.state = "start"
+                    return '>='
                 else:
-                    self.tokens.append(('oper_relacional', '>', start_line, start_col, 'mayor'))
-                self.state = "start"
-                continue
+                    self.state = "start"
+                    return '>'
 
-            # Estado: in_identificador (procesa identificadores y palabras reservadas)
+            # Estado: in_identificador
             elif self.state == "in_identificador":
                 if self.is_letter(input_char) or self.is_digit(input_char):
                     self.current_token += input_char
                     self.advance()
                 else:
+                    self.state = "start"
                     if self.current_token in palabras_reservadas:
                         token_info = palabras_reservadas[self.current_token]
                         if isinstance(token_info, tuple):
-                            self.tokens.append((token_info[0], self.current_token, start_line, start_col, token_info[1]))
-                        else:
-                            self.tokens.append((token_info, self.current_token, start_line, start_col))
-                    else:
-                        self.tokens.append(('id', self.current_token, start_line, start_col))
-                    self.state = "start"
+                            return token_info[1]  # e.g., 'or', 'and', 'not'
+                        return token_info  # e.g., 'program', 'var'
+                    return 'ident'
 
-            # Estado: in_natural (procesa números enteros)
+            # Estado: in_natural
             elif self.state == "in_natural":
                 if self.is_digit(input_char):
                     self.current_token += input_char
                     self.advance()
                 else:
-                    self.tokens.append(('numero', self.current_token, start_line, start_col))
                     self.state = "start"
+                    return 'numero'
 
-    def mostrar_tokens(self):
-        """Muestra la lista de tokens generados"""
-        # for token in self.tokens:
-        #     print(f"(lin. {token[2]:03}, col. {token[3]:03})  {token[1]:<15} ->  {token[0]}" + (f", {token[4]}" if len(token) == 5 else ""))
-        for idx, token in enumerate(self.tokens):
-            print(f"{idx}: {token[1]}")
-
-    def obtener_lista_para_parser(self):
-        """Genera una lista simplificada de tokens para el parser"""
-        simplified = []
-        for token in self.tokens:
-            tipo = token[0]
-            if tipo == 'id':
-                simplified.append('ident')
-            elif tipo == 'numero':
-                simplified.append('numero')
-            else:
-                simplified.append(token[1])  # use the symbol or keyword
-        return simplified
-
-# Ejemplo de uso
-if __name__ == "__main__":
-    analizador = AnalizadorLexico()
+        # Handle final states when input is exhausted
+        if self.state == "in_identificador":
+            self.state = "start"
+            if self.current_token in palabras_reservadas:
+                token_info = palabras_reservadas[self.current_token]
+                if isinstance(token_info, tuple):
+                    return token_info[1]
+                return token_info
+            return 'ident'
+        elif self.state == "in_natural":
+            self.state = "start"
+            return 'numero'
+        elif self.state == "saw_colon":
+            self.state = "start"
+            return 'asignacion_de_tipo'
+        elif self.state == "saw_less_than":
+            self.state = "start"
+            return '<'
+        elif self.state == "saw_greater_than":
+            self.state = "start"
+            return '>'
+        return None  # End of input

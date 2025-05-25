@@ -29,8 +29,6 @@ for file_path in pas_files:
     try:
         analizador = AnalizadorLexico()
         analizador.cargar_archivo(file_path)
-        analizador.analizar()
-        tokens = analizador.obtener_lista_para_parser()
         print('Ok')
     except Exception as e:
         print(f"Caught exception during lexical analysis: {e}")
@@ -38,7 +36,7 @@ for file_path in pas_files:
 
     print('Sintactico:', end=' ')
     try:
-        sintactico(tokens)
+        sintactico(analizador)
         print('Ok')
     except SyntaxError as e:
         print(f"Caught syntax error: {e}")

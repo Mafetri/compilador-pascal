@@ -1,23 +1,18 @@
-# Global lookahead token and token stream
+# Global lexer and lookahead token
+lexer = None
 lookahead = None
-tokens = []
-token_index = 0
 
-def sintactico(token_list):
-    global tokens, token_index, lookahead
-    tokens = token_list
-    token_index = 0
+def sintactico(lexer_instance):
+    """Initialize the global lexer and start parsing."""
+    global lexer, lookahead
+    lexer = lexer_instance
     lookahead = next_token()
     programa()
 
 def next_token():
-    """Fetch the next token from the token stream."""
-    global token_index, tokens
-    if token_index < len(tokens):
-        token = tokens[token_index]
-        token_index += 1
-        return token
-    return None
+    """Fetch the next token from the global lexer."""
+    global lexer
+    return lexer.next_token()
 
 def match(expected):
     """Match the lookahead token with the expected terminal."""
@@ -31,9 +26,9 @@ def programa():
     """<programa> ::= program <identificador> ; <bloque> ."""
     match('program')
     match('ident')
-    match(';')
+    match('punto_coma')
     bloque()
-    match('.')
+    match('punto')
 
 def bloque():
     """<bloque> ::= <parte declaraciones variables> <parte declaraciones subrutinas> <sentencia compuesta>
@@ -59,7 +54,7 @@ def parte_declaraciones_variables():
 
 def mas_declaraciones():
     """<mas declaraciones> ::= ; <declaracion de variables> <mas declaraciones> | ;"""
-    match(';')
+    match('punto_coma')
     if lookahead == 'ident':
         declaracion_de_variables()
         mas_declaraciones()
@@ -67,7 +62,7 @@ def mas_declaraciones():
 def declaracion_de_variables():
     """<declaracion de variables> ::= <lista identificadores> : <tipo>"""
     lista_identificadores()
-    match(':')
+    match('asignacion_de_tipo')
     tipo()
 
 def lista_identificadores():
@@ -77,8 +72,8 @@ def lista_identificadores():
 
 def mas_identificadores():
     """<mas identificadores> ::= , <identificador> <mas identificadores> | λ"""
-    if lookahead == ',':
-        match(',')
+    if lookahead == 'coma':
+        match('coma')
         match('ident')
         mas_identificadores()
 
@@ -96,8 +91,8 @@ def parte_declaraciones_subrutinas():
 
 def mas_subrutinas():
     """<mas subrutinas> ::= ; <declaracion de subrutina> <mas subrutinas> | λ"""
-    if lookahead == ';':
-        match(';')
+    if lookahead == 'punto_coma':
+        match('punto_coma')
         declaracion_de_subrutina()
         mas_subrutinas()
 
@@ -115,7 +110,7 @@ def declaracion_de_procedimiento():
     match('procedure')
     match('ident')
     parte_parametros_formales()
-    match(';')
+    match('punto_coma')
     bloque()
 
 def declaracion_de_funcion():
@@ -123,29 +118,29 @@ def declaracion_de_funcion():
     match('function')
     match('ident')
     parte_parametros_formales()
-    match(':')
+    match('asignacion_de_tipo')
     tipo()
-    match(';')
+    match('punto_coma')
     bloque()
 
 def parte_parametros_formales():
     """<parte parametros formales> ::= ( <seccion de parametros formales> <mas secciones parametros> ) | λ"""
-    if lookahead == '(':
-        match('(')
+    if lookahead == 'parentesis_izq':
+        match('parentesis_izq')
         seccion_de_parametros_formales()
         mas_secciones_parametros()
-        match(')')
+        match('parentesis_der')
 
 def mas_secciones_parametros():
     """<mas secciones parametros> ::= ; <seccion de parametros formales> <mas secciones parametros> | λ"""
-    while lookahead == ';':
-        match(';')
+    while lookahead == 'punto_coma':
+        match('punto_coma')
         seccion_de_parametros_formales()
 
 def seccion_de_parametros_formales():
     """<seccion de parametros formales> ::= <lista de identificadores> : <tipo>"""
     lista_identificadores()
-    match(':')
+    match('asignacion_de_tipo')
     tipo()
 
 def sentencia_compuesta():
@@ -157,8 +152,8 @@ def sentencia_compuesta():
 
 def mas_sentencias():
     """<mas sentencias> ::= ; <sentencia> <mas sentencias> | λ"""
-    if lookahead == ';':
-        match(';')
+    if lookahead == 'punto_coma':
+        match('punto_coma')
         sentencia()
         mas_sentencias()
 
@@ -184,10 +179,10 @@ def sentencia():
 def sentencia_ident():
     """<sentencia ident> ::= := <expresion> | <parte de parametros actuales>"""
     match('ident')
-    if lookahead == ':=':
-        match(':=')
+    if lookahead == 'asignacion':
+        match('asignacion')
         expresion()
-    elif lookahead == '(':
+    elif lookahead == 'parentesis_izq':
         parte_parametros_actuales()
     else:
         raise SyntaxError(f"Syntax error: expected assignment or procedure call, found '{lookahead}'")
@@ -216,23 +211,23 @@ def sentencia_repetitiva():
 def sentencia_lectura():
     """<sentencia lectura> ::= read ( <identificador> )"""
     match('read')
-    match('(')
+    match('parentesis_izq')
     match('ident')
-    match(')')
+    match('parentesis_der')
 
 def sentencia_escritura():
     """<sentencia escritura> ::= write ( <identificador> )"""
     match('write')
-    match('(')
+    match('parentesis_izq')
     match('ident')
-    match(')')
+    match('parentesis_der')
 
 def parte_parametros_actuales():
     """<parte parametros actuales> ::= ( <lista de expresiones> ) | λ"""
-    if lookahead == '(':
-        match('(')
+    if lookahead == 'parentesis_izq':
+        match('parentesis_izq')
         lista_de_expresiones()
-        match(')')
+        match('parentesis_der')
 
 def lista_de_expresiones():
     """<lista de expresiones> ::= <expresion> <mas expresiones>"""
@@ -241,8 +236,8 @@ def lista_de_expresiones():
 
 def mas_expresiones():
     """<mas expresiones> ::= , <expresion> <mas expresiones> | λ"""
-    if lookahead == ',':
-        match(',')
+    if lookahead == 'coma':
+        match('coma')
         expresion()
         mas_expresiones()
 
@@ -318,10 +313,10 @@ def factor():
         factor_identificador()
     elif lookahead == 'numero':
         match('numero')
-    elif lookahead == '(':
-        match('(')
+    elif lookahead == 'parentesis_izq':
+        match('parentesis_izq')
         expresion()
-        match(')')
+        match('parentesis_der')
     elif lookahead == 'not':
         match('not')
         factor()
@@ -332,5 +327,5 @@ def factor():
 
 def factor_identificador():
     """<factor identificador> ::= <parte parametros actuales> | λ"""
-    if lookahead == '(':
+    if lookahead == 'parentesis_izq':
         parte_parametros_actuales()
