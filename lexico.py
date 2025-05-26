@@ -18,8 +18,8 @@ palabras_reservadas = {
     'or': ('oper_logico', 'or'),
     'and': ('oper_logico', 'and'),
     'not': ('oper_logico', 'not'),
-    'true': 'true',  # Added for boolean literals
-    'false': 'false'  # Added for boolean literals
+    'true': 'true',
+    'false': 'false'
 }
 
 simbolos = {
