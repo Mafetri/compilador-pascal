@@ -16,4 +16,4 @@ if __name__ == "__main__":
         sintactico(analizador)
         print('Ok')
     except SyntaxError as e:
-        print(f"Caught syntax error: {e}")
+        print(e)
