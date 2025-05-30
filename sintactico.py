@@ -198,13 +198,8 @@ def sentencia_ident():
     if lookahead == 'asignacion':
         match('asignacion')
         expresion()
-    elif lookahead == 'parentesis_izq':
-        parte_parametros_actuales()
     else:
-        raise SyntaxError(
-            f"Syntax error at line {lookahead_line}, column {lookahead_col}: "
-            f"expected assignment or procedure call, found '{lookahead}'"
-        )
+        parte_parametros_actuales()
 
 def sentencia_condicional():
     """<sentencia condicional> ::= if <expresion> then <sentencia> <parte else>"""

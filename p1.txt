@@ -1,0 +1,16 @@
+program p1  ;
+var 
+    a:integer ; b:boolean ;
+
+procedure p1(a:integer) ;
+var c:integer ;
+begin
+    a:= 1 
+end
+
+
+begin
+    a:= 3 ;
+    b:= true ;
+    if b then b
+end.
