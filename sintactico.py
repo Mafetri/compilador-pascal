@@ -237,9 +237,16 @@ def sentencia_escritura():
     match('parentesis_der')
 
 def parte_parametros_actuales():
-    """<parte parametros actuales> ::= ( <lista de expresiones> ) | λ"""
+    """<parte parametros actuales> ::= ( <resto parametros actuales> | λ"""
     if lookahead == 'parentesis_izq':
         match('parentesis_izq')
+        resto_parametros_actuales()
+
+def resto_parametros_actuales():
+    """<resto parametros actuales> ::= ) | <lista de expresiones> )"""
+    if lookahead == 'parentesis_der':
+        match('parentesis_der')
+    else:
         lista_de_expresiones()
         match('parentesis_der')
 
