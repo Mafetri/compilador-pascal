@@ -1,8 +1,9 @@
-program p1  ;
+program p1;
 var 
-    a:integer ; b:boolean ;
+    a:integer ; 
+    b:boolean ;
 
-procedure p1(a:integer) ;
+procedure p2(a:integer) ;
 var c:integer ;
 begin
     a:= 1 
@@ -12,5 +13,5 @@ end
 begin
     a:= 3 ;
     b:= true ;
-    if b then b
+    if b then p2()
 end.

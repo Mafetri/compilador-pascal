@@ -1,15 +1,20 @@
-# Global lexer and lookahead token
+from semantico import AnalizadorSemantico
+
+semantico = AnalizadorSemantico()
+
+# Variables globales para almacenar información del token actual
 lexer = None
 lookahead = None
+lookahead_value = None
 lookahead_line = None
 lookahead_col = None
 
 def sintactico(lexer_instance):
     """Initialize the global lexer and start parsing."""
-    global lexer, lookahead, lookahead_line, lookahead_col
+    global lexer, lookahead, lookahead_value, lookahead_line, lookahead_col
     lexer = lexer_instance
     token_info = next_token()
-    lookahead, lookahead_line, lookahead_col = token_info
+    lookahead, lookahead_value, lookahead_line, lookahead_col = token_info
     programa()
 
 def next_token():
@@ -19,10 +24,10 @@ def next_token():
 
 def match(expected):
     """Match the lookahead token with the expected terminal."""
-    global lookahead, lookahead_line, lookahead_col
+    global lookahead, lookahead_value, lookahead_line, lookahead_col
     if lookahead == expected:
         token_info = next_token()
-        lookahead, lookahead_line, lookahead_col = token_info
+        lookahead, lookahead_value, lookahead_line, lookahead_col = token_info
     else:
         raise SyntaxError(
             f"Syntax error at line {lookahead_line}, column {lookahead_col}: "
@@ -32,7 +37,9 @@ def match(expected):
 def programa():
     """<programa> ::= program <identificador> ; <bloque> ."""
     match('program')
+    program_name = lookahead_value
     match('ident')
+    semantico.tabla_simbolos.insertar(program_name, 'program', 'programa', lookahead_col, lookahead_line)
     match('punto_coma')
     bloque()
     match('punto')
@@ -68,26 +75,36 @@ def mas_declaraciones():
 
 def declaracion_de_variables():
     """<declaracion de variables> ::= <lista identificadores> : <tipo>"""
-    lista_identificadores()
+    variables = lista_identificadores()
     match('asignacion_de_tipo')
-    tipo()
+    tipo_var = tipo()
+    
+    for var in variables:
+        semantico.tabla_simbolos.insertar(var, tipo_var, 'variable', lookahead_col, lookahead_line)
 
 def lista_identificadores():
     """<lista identificadores> ::= <identificador> <mas identificadores>"""
+    variables = [lookahead_value]  # CORREGIDO: usar lookahead_value
     match('ident')
-    mas_identificadores()
+    variables.extend(mas_identificadores())
+    return variables
 
 def mas_identificadores():
     """<mas identificadores> ::= , <identificador> <mas identificadores> | λ"""
+    variables = []
     if lookahead == 'coma':
         match('coma')
+        variables.append(lookahead_value)  # CORREGIDO: usar lookahead_value
         match('ident')
-        mas_identificadores()
+        variables.extend(mas_identificadores())
+    return variables
 
 def tipo():
     """<tipo> ::= integer | boolean"""
     if lookahead in ['integer', 'boolean']:
+        tipo_val = lookahead
         match(lookahead)
+        return tipo_val
     else:
         raise SyntaxError(
             f"Syntax error at line {lookahead_line}, column {lookahead_col}: "
@@ -121,40 +138,79 @@ def declaracion_de_subrutina():
 def declaracion_de_procedimiento():
     """<declaracion de procedimiento> ::= procedure <identificador> <parte parametros formales> ; <bloque>"""
     match('procedure')
+    proc_name = lookahead_value  # CORREGIDO: usar lookahead_value
     match('ident')
-    parte_parametros_formales()
+    
+    # Entrar nuevo ámbito
+    semantico.tabla_simbolos.entrar_ambito(proc_name)
+    semantico.funcion_actual = proc_name
+    
+    # Procesar parámetros
+    parametros = parte_parametros_formales()
+    semantico.tabla_simbolos.insertar(proc_name, 'void', 'procedimiento', lookahead_col, lookahead_line, 'global', parametros)
+    
     match('punto_coma')
     bloque()
+    
+    # Salir ámbito
+    semantico.tabla_simbolos.salir_ambito()
+    semantico.funcion_actual = None
 
 def declaracion_de_funcion():
     """<declaracion de funcion> ::= function <identificador> <parte parametros formales> : <tipo> ; <bloque>"""
     match('function')
+    func_name = lookahead_value
     match('ident')
-    parte_parametros_formales()
+    
+    # Entrar nuevo ámbito
+    semantico.tabla_simbolos.entrar_ambito(func_name)
+    semantico.funcion_actual = func_name
+    
+    # Procesar parámetros
+    parametros = parte_parametros_formales()
     match('asignacion_de_tipo')
-    tipo()
+    return_type = tipo()
+    semantico.verificar_tipo(return_type)
+    
+    semantico.tabla_simbolos.insertar(func_name, return_type, 'funcion', lookahead_col, lookahead_line, 'global', parametros)
+    
     match('punto_coma')
     bloque()
+    
+    # Salir ámbito
+    semantico.tabla_simbolos.salir_ambito()
+    semantico.funcion_actual = None
 
 def parte_parametros_formales():
     """<parte parametros formales> ::= ( <seccion de parametros formales> <mas secciones parametros> ) | λ"""
+    parametros = []
     if lookahead == 'parentesis_izq':
         match('parentesis_izq')
-        seccion_de_parametros_formales()
-        mas_secciones_parametros()
+        parametros.extend(seccion_de_parametros_formales())
+        parametros.extend(mas_secciones_parametros())
         match('parentesis_der')
+    return parametros
 
 def mas_secciones_parametros():
     """<mas secciones parametros> ::= ; <seccion de parametros formales> <mas secciones parametros> | λ"""
+    parametros = []
     while lookahead == 'punto_coma':
         match('punto_coma')
-        seccion_de_parametros_formales()
+        parametros.extend(seccion_de_parametros_formales())
+    return parametros
 
 def seccion_de_parametros_formales():
     """<seccion de parametros formales> ::= <lista de identificadores> : <tipo>"""
-    lista_identificadores()
+    variables = lista_identificadores()
     match('asignacion_de_tipo')
-    tipo()
+    tipo_param = tipo()
+    
+    parametros = []
+    for var in variables:
+        semantico.tabla_simbolos.insertar(var, tipo_param, 'variable', lookahead_col, lookahead_line)
+        parametros.append({'nombre': var, 'tipo': tipo_param})
+    
+    return parametros
 
 def sentencia_compuesta():
     """<sentencia compuesta> ::= begin <sentencia> <mas sentencias> end"""
@@ -194,17 +250,35 @@ def sentencia():
 
 def sentencia_ident():
     """<sentencia ident> ::= := <expresion> | <parte de parametros actuales>"""
+    ident_name = lookahead_value  # CORREGIDO: usar lookahead_value
     match('ident')
+    
     if lookahead == 'asignacion':
+        # Es una asignación
+        variable = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name, 'variable')
         match('asignacion')
-        expresion()
+        expr_type = expresion()
+        semantico.verificar_asignacion(lookahead_line, lookahead_col, variable, expr_type)
     else:
-        parte_parametros_actuales()
+        # Es una llamada a procedimiento/función
+        funcion = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name)
+        if funcion['categoria'] not in ['procedimiento', 'funcion']:
+            raise SyntaxError(f"Semantic error at line {lookahead_line}, column {lookahead_col}: '{ident_name}' no es un procedimiento ni función")
+        
+        parametros_tipos = parte_parametros_actuales()
+        
+        if funcion['categoria'] == 'funcion':
+            # Para funciones, verificamos parámetros pero no hacemos nada con el retorno
+            semantico.verificar_llamada_funcion(lookahead_line, lookahead_col, funcion, parametros_tipos)
+        else:
+            semantico.verificar_llamada_procedimiento(lookahead_line, lookahead_col, funcion, parametros_tipos)
 
 def sentencia_condicional():
     """<sentencia condicional> ::= if <expresion> then <sentencia> <parte else>"""
     match('if')
-    expresion()
+    expr_type = expresion()
+    if expr_type != 'boolean':
+        raise SyntaxError("Semantic error at line {lookahead_line}, column {lookahead_col}: la condición del 'if' debe ser boolean")
     match('then')
     sentencia()
     parte_else()
@@ -218,7 +292,9 @@ def parte_else():
 def sentencia_repetitiva():
     """<sentencia repetitiva> ::= while <expresion> do <sentencia>"""
     match('while')
-    expresion()
+    expr_type = expresion()
+    if expr_type != 'boolean':
+        raise SyntaxError("Semantic error at line {lookahead_line}, column {lookahead_col}: la condición del 'while' debe ser boolean")
     match('do')
     sentencia()
 
@@ -226,57 +302,73 @@ def sentencia_lectura():
     """<sentencia lectura> ::= read ( <identificador> )"""
     match('read')
     match('parentesis_izq')
+    var_name = lookahead_value  # CORREGIDO: usar lookahead_value
     match('ident')
+    variable = semantico.verificar_declaracion(lookahead_line, lookahead_col, var_name, 'variable')
+    if variable['tipo'] != 'integer':
+        raise SyntaxError(f"Semantic error at line {lookahead_line}, column {lookahead_col}: solo se puede leer variables integer, '{var_name}' es {variable['tipo']}")
     match('parentesis_der')
 
 def sentencia_escritura():
     """<sentencia escritura> ::= write ( <identificador> )"""
     match('write')
     match('parentesis_izq')
+    var_name = lookahead_value  # CORREGIDO: usar lookahead_value
     match('ident')
+    semantico.verificar_declaracion(lookahead_line, lookahead_col, var_name, 'variable')
     match('parentesis_der')
 
 def parte_parametros_actuales():
     """<parte parametros actuales> ::= ( <resto parametros actuales> | λ"""
     if lookahead == 'parentesis_izq':
         match('parentesis_izq')
-        resto_parametros_actuales()
+        return resto_parametros_actuales()
+    return []
 
 def resto_parametros_actuales():
     """<resto parametros actuales> ::= ) | <lista de expresiones> )"""
     if lookahead == 'parentesis_der':
         match('parentesis_der')
+        return []
     else:
-        lista_de_expresiones()
+        parametros_tipos = lista_de_expresiones()
         match('parentesis_der')
+        return parametros_tipos
 
 def lista_de_expresiones():
     """<lista de expresiones> ::= <expresion> <mas expresiones>"""
-    expresion()
-    mas_expresiones()
+    tipos = [expresion()]
+    tipos.extend(mas_expresiones())
+    return tipos
 
 def mas_expresiones():
     """<mas expresiones> ::= , <expresion> <mas expresiones> | λ"""
+    tipos = []
     if lookahead == 'coma':
         match('coma')
-        expresion()
-        mas_expresiones()
+        tipos.append(expresion())
+        tipos.extend(mas_expresiones())
+    return tipos
 
 def expresion():
     """<expresion> ::= <expresion simple> <parte relacion>"""
-    expresion_simple()
-    parte_relacion()
+    tipo_simple = expresion_simple()
+    return parte_relacion(tipo_simple)
 
-def parte_relacion():
+def parte_relacion(tipo_izq):
     """<parte relacion> ::= <relacion> <expresion simple> | λ"""
     if lookahead in ['=', '<>', '<', '>', '<=', '>=']:
-        relacion()
-        expresion_simple()
+        op = relacion()
+        tipo_der = expresion_simple()
+        return semantico.verificar_operacion_binaria(lookahead_line, lookahead_col, op, tipo_izq, tipo_der)
+    return tipo_izq
 
 def relacion():
     """<relacion> ::= = | <> | < | > | <= | >="""
     if lookahead in ['=', '<>', '<', '>', '<=', '>=']:
+        op = lookahead
         match(lookahead)
+        return op
     else:
         raise SyntaxError(
             f"Syntax error at line {lookahead_line}, column {lookahead_col}: "
@@ -286,54 +378,67 @@ def relacion():
 def expresion_simple():
     """<expresion simple> ::= <signo> <termino> <resto expresion simple> | <termino> <resto expresion simple>"""
     if lookahead in ['+', '-']:
-        signo()
-    termino()
-    resto_expresion_simple()
+        op = signo()
+        tipo_term = termino()
+        tipo_final = semantico.verificar_operacion_unaria(lookahead_line, lookahead_col, op, tipo_term)
+    else:
+        tipo_final = termino()
+        
+    return resto_expresion_simple(tipo_final)
 
 def signo():
     """<signo> ::= + | -"""
     if lookahead in ['+', '-']:
+        op = lookahead
         match(lookahead)
+        return op
     else:
         raise SyntaxError(
             f"Syntax error at line {lookahead_line}, column {lookahead_col}: "
             "expected '+' or '-'"
         )
 
-def resto_expresion_simple():
+def resto_expresion_simple(tipo_actual):
     """<resto expresion simple> ::= <op aditivo> <termino> <resto expresion simple> | λ"""
     if lookahead in ['+', '-', 'or']:
-        op_aditivo()
-        termino()
-        resto_expresion_simple()
+        op = op_aditivo()
+        tipo_term = termino()
+        nuevo_tipo = semantico.verificar_operacion_binaria(lookahead_line, lookahead_col, op, tipo_actual, tipo_term)
+        return resto_expresion_simple(nuevo_tipo)
+    return tipo_actual
 
 def op_aditivo():
     """<op aditivo> ::= + | - | or"""
     if lookahead in ['+', '-', 'or']:
+        op = lookahead
         match(lookahead)
+        return op
     else:
         raise SyntaxError(
             f"Syntax error at line {lookahead_line}, column {lookahead_col}: "
             "expected additive operator"
         )
 
-
 def termino():
     """<termino> ::= <factor> <resto termino>"""
-    factor()
-    resto_termino()
+    tipo_fact = factor()
+    return resto_termino(tipo_fact)
 
-def resto_termino():
+def resto_termino(tipo_actual):
     """<resto termino> ::= <op multiplicativo> <factor> <resto termino> | λ"""
     if lookahead in ['*', 'div', 'and']:
-        op_multiplicativo()
-        factor()
-        resto_termino()
+        op = op_multiplicativo()
+        tipo_fact = factor()
+        nuevo_tipo = semantico.verificar_operacion_binaria(lookahead_line, lookahead_col, op, tipo_actual, tipo_fact)
+        return resto_termino(nuevo_tipo)
+    return tipo_actual
 
 def op_multiplicativo():
     """<op multiplicativo> ::= * | div | and"""
     if lookahead in ['*', 'div', 'and']:
+        op = lookahead
         match(lookahead)
+        return op
     else:
         raise SyntaxError(
             f"Syntax error at line {lookahead_line}, column {lookahead_col}: "
@@ -343,26 +448,39 @@ def op_multiplicativo():
 def factor():
     """<factor> ::= <identificador> <factor identificador> | numero | ( <expresion> ) | not <factor> | true | false"""
     if lookahead == 'ident':
+        ident_name = lookahead_value  # CORREGIDO: usar lookahead_value
         match('ident')
-        factor_identificador()
+        return factor_identificador(ident_name)
     elif lookahead == 'numero':
         match('numero')
+        return 'integer'
     elif lookahead == 'parentesis_izq':
         match('parentesis_izq')
-        expresion()
+        tipo_expr = expresion()
         match('parentesis_der')
+        return tipo_expr
     elif lookahead == 'not':
         match('not')
-        factor()
+        tipo_fact = factor()
+        return semantico.verificar_operacion_unaria(lookahead_line, lookahead_col, 'not', tipo_fact)
     elif lookahead in ['true', 'false']:
+        valor = lookahead
         match(lookahead)
+        return 'boolean'
     else:
         raise SyntaxError(
             f"Syntax error at line {lookahead_line}, column {lookahead_col}: "
             "invalid factor"
         )
 
-def factor_identificador():
+def factor_identificador(ident_name):
     """<factor identificador> ::= <parte parametros actuales> | λ"""
     if lookahead == 'parentesis_izq':
-        parte_parametros_actuales()
+        # Es una llamada a función
+        funcion = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name, 'funcion')
+        parametros_tipos = parte_parametros_actuales()
+        return semantico.verificar_llamada_funcion(lookahead_line, lookahead_col, funcion, parametros_tipos)
+    else:
+        # Es una variable
+        variable = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name, 'variable')
+        return variable['tipo']

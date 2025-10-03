@@ -82,7 +82,7 @@ class AnalizadorLexico:
         return None
 
     def next_token(self):
-        """Genera y devuelve el siguiente token junto con su posición (línea, columna)"""
+        """Genera y devuelve el siguiente token junto con su valor y posición (tipo, valor, línea, columna)"""
         while self.posicion < len(self.texto):
             input_char = self.texto[self.posicion]
             start_line, start_col = self.linea, self.columna
@@ -107,34 +107,34 @@ class AnalizadorLexico:
                     self.advance()
                 elif input_char == ';':
                     self.advance()
-                    return ('punto_coma', start_line, start_col)
+                    return ('punto_coma', ';', start_line, start_col)
                 elif input_char == ',':
                     self.advance()
-                    return ('coma', start_line, start_col)
+                    return ('coma', ',', start_line, start_col)
                 elif input_char == '.':
                     self.advance()
-                    return ('punto', start_line, start_col)
+                    return ('punto', '.', start_line, start_col)
                 elif input_char == '(':
                     self.advance()
-                    return ('parentesis_izq', start_line, start_col)
+                    return ('parentesis_izq', '(', start_line, start_col)
                 elif input_char == ')':
                     self.advance()
-                    return ('parentesis_der', start_line, start_col)
+                    return ('parentesis_der', ')', start_line, start_col)
                 elif input_char == '+':
                     self.advance()
-                    return ('+', start_line, start_col)
+                    return ('+', '+', start_line, start_col)
                 elif input_char == '-':
                     self.advance()
-                    return ('-', start_line, start_col)
+                    return ('-', '-', start_line, start_col)
                 elif input_char == '*':
                     self.advance()
-                    return ('*', start_line, start_col)
+                    return ('*', '*', start_line, start_col)
                 elif input_char == '/':
                     self.advance()
-                    return ('div', start_line, start_col)
+                    return ('div', '/', start_line, start_col)
                 elif input_char == '=':
                     self.advance()
-                    return ('=', start_line, start_col)
+                    return ('=', '=', start_line, start_col)
                 elif input_char == '<':
                     self.state = "saw_less_than"
                     self.current_token = input_char
@@ -154,10 +154,10 @@ class AnalizadorLexico:
                 if input_char == '=':
                     self.advance()
                     self.state = "start"
-                    return ('asignacion', start_line, start_col)
+                    return ('asignacion', ':=', start_line, start_col)
                 else:
                     self.state = "start"
-                    return ('asignacion_de_tipo', start_line, start_col)
+                    return ('asignacion_de_tipo', ':', start_line, start_col)
 
             # Estado: in_comment
             elif self.state == "in_comment":
@@ -171,24 +171,24 @@ class AnalizadorLexico:
                 if input_char == '=':
                     self.advance()
                     self.state = "start"
-                    return ('<=', start_line, start_col)
+                    return ('<=', '<=', start_line, start_col)
                 elif input_char == '>':
                     self.advance()
                     self.state = "start"
-                    return ('<>', start_line, start_col)
+                    return ('<>', '<>', start_line, start_col)
                 else:
                     self.state = "start"
-                    return ('<', start_line, start_col)
+                    return ('<', '<', start_line, start_col)
 
             # Estado: saw_greater_than
             elif self.state == "saw_greater_than":
                 if input_char == '=':
                     self.advance()
                     self.state = "start"
-                    return ('>=', start_line, start_col)
+                    return ('>=', '>=', start_line, start_col)
                 else:
                     self.state = "start"
-                    return ('>', start_line, start_col)
+                    return ('>', '>', start_line, start_col)
 
             # Estado: in_identificador
             elif self.state == "in_identificador":
@@ -197,12 +197,13 @@ class AnalizadorLexico:
                     self.advance()
                 else:
                     self.state = "start"
-                    if self.current_token in palabras_reservadas:
-                        token_info = palabras_reservadas[self.current_token]
+                    token_value = self.current_token
+                    if token_value in palabras_reservadas:
+                        token_info = palabras_reservadas[token_value]
                         if isinstance(token_info, tuple):
-                            return (token_info[1], start_line, start_col)  # e.g., 'or', 'and', 'not'
-                        return (token_info, start_line, start_col)  # e.g., 'program', 'var'
-                    return ('ident', start_line, start_col)
+                            return (token_info[1], token_value, start_line, start_col)  # e.g., 'or', 'and', 'not'
+                        return (token_info, token_value, start_line, start_col)  # e.g., 'program', 'var'
+                    return ('ident', token_value, start_line, start_col)
 
             # Estado: in_natural
             elif self.state == "in_natural":
@@ -211,27 +212,30 @@ class AnalizadorLexico:
                     self.advance()
                 else:
                     self.state = "start"
-                    return ('numero', start_line, start_col)
+                    token_value = self.current_token
+                    return ('numero', token_value, start_line, start_col)
 
         # Handle final states when input is exhausted
         if self.state == "in_identificador":
             self.state = "start"
-            if self.current_token in palabras_reservadas:
-                token_info = palabras_reservadas[self.current_token]
+            token_value = self.current_token
+            if token_value in palabras_reservadas:
+                token_info = palabras_reservadas[token_value]
                 if isinstance(token_info, tuple):
-                    return (token_info[1], self.linea, self.columna)
-                return (token_info, self.linea, self.columna)
-            return ('ident', self.linea, self.columna)
+                    return (token_info[1], token_value, self.linea, self.columna)
+                return (token_info, token_value, self.linea, self.columna)
+            return ('ident', token_value, self.linea, self.columna)
         elif self.state == "in_natural":
             self.state = "start"
-            return ('numero', self.linea, self.columna)
+            token_value = self.current_token
+            return ('numero', token_value, self.linea, self.columna)
         elif self.state == "saw_colon":
             self.state = "start"
-            return ('asignacion_de_tipo', self.linea, self.columna)
+            return ('asignacion_de_tipo', ':', self.linea, self.columna)
         elif self.state == "saw_less_than":
             self.state = "start"
-            return ('<', self.linea, self.columna)
+            return ('<', '<', self.linea, self.columna)
         elif self.state == "saw_greater_than":
             self.state = "start"
-            return ('>', self.linea, self.columna)
-        return (None, self.linea, self.columna)  # End of input
+            return ('>', '>', self.linea, self.columna)
+        return (None, None, self.linea, self.columna)  # End of input
