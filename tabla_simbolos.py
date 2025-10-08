@@ -7,18 +7,18 @@ class TablaSimbolos:
     def insertar(self, nombre, tipo, categoria, column, row, ambito=None, parametros=None):
         if ambito is None:
             ambito = self.ambito_actual
-            
+
         clave = f"{ambito}.{nombre}" if ambito != "global" else nombre
 
         if clave in self.tabla:
             raise SyntaxError(f"Semantic error at line {row}, column {column}: '{nombre}' it already declared in '{ambito}' (col {column}, row {row})")
             
         self.tabla[clave] = {
-            'nombre': nombre,
-            'tipo': tipo,
-            'categoria': categoria,
-            'ambito': ambito,
-            'parametros': parametros or []
+            'nombre': nombre,               # Nombre del símbolo: ej 'x', 'miFuncion'
+            'tipo': tipo,                   # Tipo del símbolo (integer, boolean, etc.)
+            'categoria': categoria,         # Categoría (variable, funcion, procedimiento)
+            'ambito': ambito,               # Ámbito (global, local, etc.)
+            'parametros': parametros or []  # Paraámetros si es función o procedimiento: ej p(a: integer) { 'nombre': 'a', 'tipo': 'integer' }
         }
         
     def buscar(self, nombre, ambito=None):

@@ -13,5 +13,5 @@ end
 begin
     a:= 3 ;
     b:= true ;
-    if b then p2()
+    if c then p2()
 end.

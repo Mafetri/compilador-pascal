@@ -84,7 +84,7 @@ def declaracion_de_variables():
 
 def lista_identificadores():
     """<lista identificadores> ::= <identificador> <mas identificadores>"""
-    variables = [lookahead_value]  # CORREGIDO: usar lookahead_value
+    variables = [lookahead_value]
     match('ident')
     variables.extend(mas_identificadores())
     return variables
@@ -94,7 +94,7 @@ def mas_identificadores():
     variables = []
     if lookahead == 'coma':
         match('coma')
-        variables.append(lookahead_value)  # CORREGIDO: usar lookahead_value
+        variables.append(lookahead_value)
         match('ident')
         variables.extend(mas_identificadores())
     return variables
@@ -138,7 +138,7 @@ def declaracion_de_subrutina():
 def declaracion_de_procedimiento():
     """<declaracion de procedimiento> ::= procedure <identificador> <parte parametros formales> ; <bloque>"""
     match('procedure')
-    proc_name = lookahead_value  # CORREGIDO: usar lookahead_value
+    proc_name = lookahead_value
     match('ident')
     
     # Entrar nuevo ámbito
@@ -250,7 +250,7 @@ def sentencia():
 
 def sentencia_ident():
     """<sentencia ident> ::= := <expresion> | <parte de parametros actuales>"""
-    ident_name = lookahead_value  # CORREGIDO: usar lookahead_value
+    ident_name = lookahead_value
     match('ident')
     
     if lookahead == 'asignacion':
@@ -268,7 +268,6 @@ def sentencia_ident():
         parametros_tipos = parte_parametros_actuales()
         
         if funcion['categoria'] == 'funcion':
-            # Para funciones, verificamos parámetros pero no hacemos nada con el retorno
             semantico.verificar_llamada_funcion(lookahead_line, lookahead_col, funcion, parametros_tipos)
         else:
             semantico.verificar_llamada_procedimiento(lookahead_line, lookahead_col, funcion, parametros_tipos)
@@ -302,7 +301,7 @@ def sentencia_lectura():
     """<sentencia lectura> ::= read ( <identificador> )"""
     match('read')
     match('parentesis_izq')
-    var_name = lookahead_value  # CORREGIDO: usar lookahead_value
+    var_name = lookahead_value
     match('ident')
     variable = semantico.verificar_declaracion(lookahead_line, lookahead_col, var_name, 'variable')
     if variable['tipo'] != 'integer':
@@ -313,7 +312,7 @@ def sentencia_escritura():
     """<sentencia escritura> ::= write ( <identificador> )"""
     match('write')
     match('parentesis_izq')
-    var_name = lookahead_value  # CORREGIDO: usar lookahead_value
+    var_name = lookahead_value
     match('ident')
     semantico.verificar_declaracion(lookahead_line, lookahead_col, var_name, 'variable')
     match('parentesis_der')
@@ -448,7 +447,7 @@ def op_multiplicativo():
 def factor():
     """<factor> ::= <identificador> <factor identificador> | numero | ( <expresion> ) | not <factor> | true | false"""
     if lookahead == 'ident':
-        ident_name = lookahead_value  # CORREGIDO: usar lookahead_value
+        ident_name = lookahead_value
         match('ident')
         return factor_identificador(ident_name)
     elif lookahead == 'numero':
