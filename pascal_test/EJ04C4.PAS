@@ -4,9 +4,11 @@ var
   j,l:boolean;
 
 function algo(m,n:boolean): integer;
- var b:boolean;
+ var b:integer;
 begin
-  b := m OR n;
+  if (m OR n)+1 
+    then b := +1
+    else b := -5;
   algo := a + 5;
 end;
 
@@ -17,7 +19,7 @@ begin
 end;
 
 begin
-   a:= 9 + algo(j + TRUE, l);
+   a:= 9 + algo(j, l);
    nuevo(a*2, b);
 end.
 

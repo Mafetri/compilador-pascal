@@ -170,7 +170,7 @@ def declaracion_de_funcion():
     parametros = parte_parametros_formales()
     match('asignacion_de_tipo')
     return_type = tipo()
-    semantico.verificar_tipo(return_type)
+    semantico.verificar_tipo(return_type, lookahead_col, lookahead_line)
     
     semantico.tabla_simbolos.insertar(func_name, return_type, 'funcion', lookahead_col, lookahead_line, 'global', parametros)
     
@@ -263,7 +263,7 @@ def sentencia_ident():
         # Es una llamada a procedimiento/función
         funcion = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name)
         if funcion['categoria'] not in ['procedimiento', 'funcion']:
-            raise SyntaxError(f"Semantic error at line {lookahead_line}, column {lookahead_col}: '{ident_name}' no es un procedimiento ni función")
+            raise SyntaxError(f"Semantic error at line {lookahead_line}, column {lookahead_col}: '{ident_name}' is not a procedure or function")
         
         parametros_tipos = parte_parametros_actuales()
         
@@ -277,7 +277,7 @@ def sentencia_condicional():
     match('if')
     expr_type = expresion()
     if expr_type != 'boolean':
-        raise SyntaxError("Semantic error at line {lookahead_line}, column {lookahead_col}: la condición del 'if' debe ser boolean")
+        raise SyntaxError(f"Semantic error at line {lookahead_line}, column {lookahead_col}: the 'if' condition must be boolean")
     match('then')
     sentencia()
     parte_else()
@@ -293,7 +293,7 @@ def sentencia_repetitiva():
     match('while')
     expr_type = expresion()
     if expr_type != 'boolean':
-        raise SyntaxError("Semantic error at line {lookahead_line}, column {lookahead_col}: la condición del 'while' debe ser boolean")
+        raise SyntaxError(f"Semantic error at line {lookahead_line}, column {lookahead_col}: the 'while' condition must be boolean")
     match('do')
     sentencia()
 
@@ -305,7 +305,7 @@ def sentencia_lectura():
     match('ident')
     variable = semantico.verificar_declaracion(lookahead_line, lookahead_col, var_name, 'variable')
     if variable['tipo'] != 'integer':
-        raise SyntaxError(f"Semantic error at line {lookahead_line}, column {lookahead_col}: solo se puede leer variables integer, '{var_name}' es {variable['tipo']}")
+        raise SyntaxError(f"Semantic error at line {lookahead_line}, column {lookahead_col}: only integer variables can be read, '{var_name}' is {variable['tipo']} type")
     match('parentesis_der')
 
 def sentencia_escritura():

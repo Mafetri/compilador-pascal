@@ -7,6 +7,7 @@ function algo(m,n:boolean): integer;
  var b:boolean;
 begin
   b := m OR n;
+  b := b * n;
   algo := a + 5;
 end;
 
@@ -17,7 +18,7 @@ begin
 end;
 
 begin
-   a:= 9 + algo(j + TRUE, l);
+   a:= 9 + algo(j, l);
    nuevo(a*2, b);
 end.
 
