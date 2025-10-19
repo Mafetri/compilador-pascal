@@ -60,4 +60,16 @@ class AnalizadorSemantico:
     
     def verificar_llamada_procedimiento(self, row, col, procedimiento, parametros_actuales):
         if len(procedimiento['parametros']) != len(parametros_actuales):
-            raise SyntaxError(f"Semantic error at line {row}, column {col}: procedure '{procedimiento['nombre']}' requires {len(procedimiento['parametros'])} parameters, {len(parametros_actuales)} were given")
+            raise SyntaxError(
+                f"Semantic error at line {row}, column {col}: "
+                f"procedure '{procedimiento['nombre']}' requires {len(procedimiento['parametros'])} parameters, "
+                f"{len(parametros_actuales)} were given"
+            )
+
+        for i, (param_formal, param_actual) in enumerate(zip(procedimiento['parametros'], parametros_actuales)):
+            if param_formal['tipo'] != param_actual:
+                raise SyntaxError(
+                    f"Semantic error at line {row}, column {col}: "
+                    f"parameter {i+1} of procedure '{procedimiento['nombre']}' must be '{param_formal['tipo']}', "
+                    f"but '{param_actual}' was provided"
+                )
