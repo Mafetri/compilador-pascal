@@ -1,0 +1,23 @@
+program b;
+var a,t:integer; 
+d, d1:boolean;
+
+procedure XX(w:boolean);
+{procedure XX;}
+var a1: integer; 
+begin
+
+ if 2 + 2 > 2 then
+ a:= 55;
+ a:= a1 + 55
+end;
+
+
+
+begin
+   {a:= d1 and d;  }
+   {XX(3);	}
+   XX;	
+   {a:= d1 + d }
+end.
+

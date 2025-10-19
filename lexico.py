@@ -78,13 +78,13 @@ class AnalizadorLexico:
             else:
                 self.columna += 1
             self.posicion += 1
-            return char
+            return char.lower()
         return None
 
     def next_token(self):
         """Genera y devuelve el siguiente token junto con su valor y posición (tipo, valor, línea, columna)"""
         while self.posicion < len(self.texto):
-            input_char = self.texto[self.posicion]
+            input_char = self.texto[self.posicion].lower()
             start_line, start_col = self.linea, self.columna
 
             # Estado inicial: start
