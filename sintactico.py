@@ -309,12 +309,19 @@ def sentencia_lectura():
     match('parentesis_der')
 
 def sentencia_escritura():
-    """<sentencia escritura> ::= write ( <identificador> )"""
+    """<sentencia escritura> ::= write ( <identificador> | <numero> )"""
     match('write')
     match('parentesis_izq')
-    var_name = lookahead_value
-    match('ident')
-    semantico.verificar_declaracion(lookahead_line, lookahead_col, var_name, 'variable')
+
+    if lookahead == 'ident':
+        var_name = lookahead_value
+        match('ident')
+        semantico.verificar_declaracion(lookahead_line, lookahead_col, var_name, 'variable')
+    elif lookahead == 'numero':
+        match('numero')
+    else:
+        raise SyntaxError(f"Se esperaba identificador o número en línea {lookahead_line}, columna {lookahead_col}")
+
     match('parentesis_der')
 
 def parte_parametros_actuales():
