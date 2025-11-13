@@ -32,6 +32,8 @@ class AnalizadorSemantico:
         elif op in ['=', '<>', '<', '>', '<=', '>=']:
             if tipo1 != tipo2:
                 raise SyntaxError(f"Semantic error at line {row}, column {col}: operation '{op}' requires operators of the same type")
+            if op in ['<', '>', '<=', '>='] and tipo1 == 'boolean':
+                raise SyntaxError(f"Semantic error at line {row}, column {col}: operation '{op}' not allowed for boolean types")
             return 'boolean'
         elif op in ['and', 'or']:
             if tipo1 != 'boolean' or tipo2 != 'boolean':
