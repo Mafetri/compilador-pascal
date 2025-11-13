@@ -34,7 +34,6 @@ class GeneradorCodigoIntermedio:
 
     def imprimir_codigo(self):
         """Muestra el código intermedio generado de forma legible."""
-        print("\n--- CÓDIGO INTERMEDIO GENERADO ---")
         for i, cuad in enumerate(self.codigo):
             if cuad['op'] == 'label':
                 # Imprime etiquetas en su propia línea para claridad
@@ -50,6 +49,10 @@ class GeneradorCodigoIntermedio:
                 print(f"  {i:03d}: param {cuad['arg1']}")
             elif cuad['op'] == 'call':
                  print(f"  {i:03d}: {cuad['res'] or ''} := call {cuad['arg1']}, {cuad['arg2']}")
+            elif cuad['op'] == 'return':
+                print(f"  {i:03d}: return")
+            elif cuad['op'] == 'return_val':
+                print(f"  {i:03d}: return {cuad['arg1']}")
             elif cuad['op'] == 'read':
                 print(f"  {i:03d}: read {cuad['res']}")
             elif cuad['op'] == 'write':
@@ -58,7 +61,6 @@ class GeneradorCodigoIntermedio:
                 print(f"  {i:03d}: {cuad['res']} := {cuad['op']} {cuad['arg1']}")
             else: # Operaciones binarias
                 print(f"  {i:03d}: {cuad['res']} := {cuad['arg1']} {cuad['op']} {cuad['arg2']}")
-        print("----------------------------------\n")
         
     # --- Generadores de Sentencias (S) ---
     
@@ -77,6 +79,13 @@ class GeneradorCodigoIntermedio:
     
     def generar_programa(self, nodo_programa):
         """Genera código para el programa completo."""
+        
+        if nodo_programa.declaraciones:
+            for decl in nodo_programa.declaraciones:
+                self.generar(decl)
+
+        self.emitir('label', None, None, 'main')
+
         self.generar_bloque(nodo_programa.bloque)
 
     def generar_bloque(self, nodo_bloque):
@@ -89,10 +98,14 @@ class GeneradorCodigoIntermedio:
         # 1. Generar código para la expresión E.
         lugar_expresion = self.generar_expresion(nodo_asignacion.expresion)
         
-        # 2. Emitir la asignación
-        # Obtener el nombre de la variable (puede ser NodoIdentificador o string)
         nombre_var = nodo_asignacion.variable.nombre if hasattr(nodo_asignacion.variable, 'nombre') else nodo_asignacion.variable
-        self.emitir(':=', lugar_expresion, None, nombre_var)
+        
+        simbolo = self.tabla_simbolos.buscar(nombre_var) 
+    
+        if simbolo and simbolo['categoria'] == 'funcion' and simbolo['nombre'].lower() == nombre_var.lower():
+            self.emitir('return_val', lugar_expresion, None, None)
+        else:
+            self.emitir(':=', lugar_expresion, None, nombre_var)
 
     def generar_if(self, nodo_if):
         """Genera código para if E then S1 [else S2]"""
@@ -262,6 +275,46 @@ class GeneradorCodigoIntermedio:
         # Por defecto, intentar generar recursivamente
         raise ValueError(f"No se puede generar código para el tipo de expresión: {tipo_nodo}")
     
+    def generar_declaracion_procedimiento(self, nodo_decl):
+        """Genera código para la *definición* de un procedimiento."""
+        
+        # 1. Emitir la etiqueta de inicio del procedimiento (el 'call' saltará aquí)
+        # Asegúrate de usar el nombre correcto (ej: 'xx')
+        self.emitir('label', None, None, nodo_decl.nombre.lower()) 
+        
+        # (Aquí iría el prólogo: guardar $ra, mover $sp, etc.)
+        
+        # 2. Generar código para declaraciones anidadas (si las hay)
+        if nodo_decl.declaraciones_internas:
+            for decl in nodo_decl.declaraciones_internas:
+                self.generar(decl)
+                
+        # 3. Generar código para el cuerpo del procedimiento
+        self.generar_bloque(nodo_decl.bloque_cuerpo)
+        
+        # 4. Emitir una instrucción de retorno
+        # (Aquí iría el epílogo: restaurar $sp, $ra, y 'jr $ra')
+        self.emitir('return', None, None, None)
+
+    def generar_declaracion_funcion(self, nodo_decl):
+        """Genera código para la *definición* de una función."""
+        
+        # 1. Emitir la etiqueta de inicio
+        self.emitir('label', None, None, nodo_decl.nombre.lower())
+        
+        # 2. Generar declaraciones anidadas
+        if nodo_decl.declaraciones_internas:
+            for decl in nodo_decl.declaraciones_internas:
+                self.generar(decl)
+                
+        # 3. Generar cuerpo
+        self.generar_bloque(nodo_decl.bloque_cuerpo)
+        
+        # 4. Emitir retorno.
+        # Asumimos que una asignación al nombre de la función (ej: miFunc := 5)
+        # ya se manejó. 'return' simplemente marca el fin del flujo.
+        self.emitir('return', None, None, None)
+
     def generar_expresion_booleana_numerica(self, nodo_expresion):
         """
         Genera código para expresiones booleanas que retornan valores numéricos (1 o 0).

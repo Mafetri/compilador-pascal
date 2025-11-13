@@ -107,8 +107,27 @@ class NodoWrite(NodoAST):
 
 class NodoPrograma(NodoAST):
     """Nodo raíz del programa."""
-    def __init__(self, nombre, bloque):
+    def __init__(self, nombre, declaraciones, bloque_principal):
         super().__init__('programa')
         self.nombre = nombre
-        self.bloque = bloque
+        self.declaraciones = declaraciones
+        self.bloque = bloque_principal
 
+class NodoDeclaracionProcedimiento(NodoAST):
+    """Nodo para la *declaración* de un procedimiento."""
+    def __init__(self, nombre, parametros, declaraciones_internas, bloque_cuerpo):
+        super().__init__('declaracion_procedimiento')
+        self.nombre = nombre
+        self.parametros = parametros # Lista de dicts {'nombre': 'w', 'tipo': 'boolean'}
+        self.declaraciones_internas = declaraciones_internas # Para anidamiento
+        self.bloque_cuerpo = bloque_cuerpo # NodoBloque del begin...end
+
+class NodoDeclaracionFuncion(NodoAST):
+    """Nodo para la *declaración* de una función."""
+    def __init__(self, nombre, parametros, tipo_retorno, declaraciones_internas, bloque_cuerpo):
+        super().__init__('declaracion_funcion')
+        self.nombre = nombre
+        self.parametros = parametros
+        self.tipo_retorno = tipo_retorno
+        self.declaraciones_internas = declaraciones_internas
+        self.bloque_cuerpo = bloque_cuerpo

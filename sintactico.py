@@ -4,7 +4,8 @@ from ast import (
     NodoLlamadaProcedimiento, NodoLlamadaFuncion,
     NodoRead, NodoWrite, NodoPrograma,
     NodoIdentificador, NodoNumero, NodoBooleano,
-    NodoOperacionBinaria, NodoOperacionUnaria, NodoExpresion
+    NodoOperacionBinaria, NodoOperacionUnaria, NodoExpresion,
+    NodoDeclaracionProcedimiento, NodoDeclaracionFuncion
 )
 
 semantico = AnalizadorSemantico()
@@ -98,25 +99,27 @@ def programa():
     match('ident')
     semantico.tabla_simbolos.insertar(program_name, 'program', 'programa', lookahead_col, lookahead_line)
     match('punto_coma')
-    nodo_bloque = bloque()
+    declaraciones_sub, nodo_bloque_principal = bloque()
     match('punto')
-    return NodoPrograma(program_name, nodo_bloque)
+    return NodoPrograma(program_name, declaraciones_sub, nodo_bloque_principal)
 
 def bloque():
     """<bloque> ::= <parte declaraciones variables> <parte declaraciones subrutinas> <sentencia compuesta>
        <bloque> ::= <parte declaraciones variables> <sentencia compuesta>
        <bloque> ::= <parte declaraciones subrutinas> <sentencia compuesta>
        <bloque> ::= <sentencia compuesta>"""
+    declaraciones_subrutinas = []
+    
     if lookahead == 'var':
         parte_declaraciones_variables()
         if lookahead in ['procedure', 'function']:
-            parte_declaraciones_subrutinas()
-        return sentencia_compuesta()
+            declaraciones_subrutinas = parte_declaraciones_subrutinas() 
     elif lookahead in ['procedure', 'function']:
-        parte_declaraciones_subrutinas()
-        return sentencia_compuesta()
-    else:
-        return sentencia_compuesta()
+        declaraciones_subrutinas = parte_declaraciones_subrutinas()
+    
+    nodo_sentencia_compuesta = sentencia_compuesta()
+    
+    return declaraciones_subrutinas, nodo_sentencia_compuesta
 
 def parte_declaraciones_variables():
     """<parte declaraciones variables> ::= var <declaracion de variables> <mas declaraciones>"""
@@ -171,22 +174,25 @@ def tipo():
 
 def parte_declaraciones_subrutinas():
     """<parte declaraciones subrutinas> ::= <declaracion de subrutina> <mas subrutinas>"""
-    declaracion_de_subrutina()
-    mas_subrutinas()
+    nodos = [declaracion_de_subrutina()]
+    nodos.extend(mas_subrutinas())
+    return nodos
 
 def mas_subrutinas():
     """<mas subrutinas> ::= ; <declaracion de subrutina> <mas subrutinas> | λ"""
+    nodos = []
     if lookahead == 'punto_coma':
         match('punto_coma')
-        declaracion_de_subrutina()
-        mas_subrutinas()
+        nodos.append(declaracion_de_subrutina())
+        nodos.extend(mas_subrutinas())
+    return nodos
 
 def declaracion_de_subrutina():
     """<declaracion de subrutina> ::= <declaracion de procedimiento> | <declaracion de funcion>"""
     if lookahead == 'procedure':
-        declaracion_de_procedimiento()
+        return declaracion_de_procedimiento()
     elif lookahead == 'function':
-        declaracion_de_funcion()
+        return declaracion_de_funcion()
     else:
         raise SyntaxError(
             f"Syntax error at line {lookahead_line}, column {lookahead_col}: "
@@ -208,11 +214,16 @@ def declaracion_de_procedimiento():
     semantico.tabla_simbolos.insertar(proc_name, 'void', 'procedimiento', lookahead_col, lookahead_line, 'global', parametros)
     
     match('punto_coma')
-    bloque()
+    
+    # bloque() ahora devuelve una tupla
+    declaraciones_internas, nodo_bloque_proc = bloque()
     
     # Salir ámbito
     semantico.tabla_simbolos.salir_ambito()
     semantico.funcion_actual = None
+    
+    # Crear y devolver el nuevo nodo AST
+    return NodoDeclaracionProcedimiento(proc_name, parametros, declaraciones_internas, nodo_bloque_proc)
 
 def declaracion_de_funcion():
     """<declaracion de funcion> ::= function <identificador> <parte parametros formales> : <tipo> ; <bloque>"""
@@ -237,8 +248,9 @@ def declaracion_de_funcion():
     semantico.tabla_simbolos.insertar(func_name, return_type, 'funcion', lookahead_col, lookahead_line, 'global', parametros)
     
     match('punto_coma')
-    bloque()
-    
+
+    declaraciones_internas, nodo_bloque_func = bloque()    
+
     # Verify that return assignment was found
     if not semantico.retorno_encontrado:
         raise SyntaxError(f"Semantic error: function '{func_name}' must assign a value to its name for return")
@@ -247,6 +259,8 @@ def declaracion_de_funcion():
     semantico.tabla_simbolos.salir_ambito()
     semantico.funcion_actual = None
     semantico.tipo_retorno_actual = None
+
+    return NodoDeclaracionFuncion(func_name, parametros, return_type, declaraciones_internas, nodo_bloque_func)
 
 def parte_parametros_formales():
     """<parte parametros formales> ::= ( <seccion de parametros formales> <mas secciones parametros> ) | λ"""

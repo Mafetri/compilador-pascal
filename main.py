@@ -26,7 +26,6 @@ if __name__ == "__main__":
         generador = GeneradorCodigoIntermedio(tabla_simbolos)
         generador.generar(ast)
         
-        print('Ok')
         # Mostrar código intermedio generado
         generador.imprimir_codigo()
     except SyntaxError as e:
