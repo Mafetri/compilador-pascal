@@ -172,14 +172,23 @@ def declaracion_de_funcion():
     return_type = tipo()
     semantico.verificar_tipo(return_type, lookahead_col, lookahead_line)
     
+    # Store return type for verification
+    semantico.tipo_retorno_actual = return_type
+    semantico.retorno_encontrado = False  # Track if return assignment was found
+    
     semantico.tabla_simbolos.insertar(func_name, return_type, 'funcion', lookahead_col, lookahead_line, 'global', parametros)
     
     match('punto_coma')
     bloque()
     
+    # Verify that return assignment was found
+    if not semantico.retorno_encontrado:
+        raise SyntaxError(f"Semantic error: function '{func_name}' must assign a value to its name for return")
+    
     # Salir ámbito
     semantico.tabla_simbolos.salir_ambito()
     semantico.funcion_actual = None
+    semantico.tipo_retorno_actual = None
 
 def parte_parametros_formales():
     """<parte parametros formales> ::= ( <seccion de parametros formales> <mas secciones parametros> ) | λ"""
@@ -254,11 +263,18 @@ def sentencia_ident():
     match('ident')
     
     if lookahead == 'asignacion':
-        # Es una asignación
-        variable = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name, 'variable')
-        match('asignacion')
-        expr_type = expresion()
-        semantico.verificar_asignacion(lookahead_line, lookahead_col, variable, expr_type)
+        # If its in a function and the identifier matches the function name, it's a return assignment
+        if semantico.funcion_actual and ident_name == semantico.funcion_actual:
+            # Function return assignment
+            match('asignacion')
+            expr_type = expresion()
+            semantico.verificar_retorno_funcion(lookahead_line, lookahead_col, expr_type)
+        else:
+            # Regular variable assignment
+            variable = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name, 'variable')
+            match('asignacion')
+            expr_type = expresion()
+            semantico.verificar_asignacion(lookahead_line, lookahead_col, variable, expr_type)
     else:
         # Es una llamada a procedimiento/función
         funcion = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name)

@@ -5,6 +5,8 @@ class AnalizadorSemantico:
         self.tabla_simbolos = TablaSimbolos()
         self.ambito_actual = "global"
         self.funcion_actual = None
+        self.tipo_retorno_actual = None  # Track current function return type
+        self.retorno_encontrado = False  # Track if return assignment was found
         
     def verificar_tipo(self, tipo, col, row ):
         if tipo not in ['integer', 'boolean']:
@@ -73,3 +75,14 @@ class AnalizadorSemantico:
                     f"parameter {i+1} of procedure '{procedimiento['nombre']}' must be '{param_formal['tipo']}', "
                     f"but '{param_actual}' was provided"
                 )
+
+    def verificar_retorno_funcion(self, row, col, tipo_expresion):
+        """Verify function return assignment"""
+        if not self.funcion_actual:
+            raise SyntaxError(f"Semantic error at line {row}, column {col}: can not assign to function name outside function body")
+        
+        if self.tipo_retorno_actual != tipo_expresion:
+            raise SyntaxError(f"Semantic error at line {row}, column {col}: function '{self.funcion_actual}' returns '{self.tipo_retorno_actual}', but assigned expression is '{tipo_expresion}'")
+        
+        # Mark that we found at least one return assignment
+        self.retorno_encontrado = True
