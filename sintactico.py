@@ -1,6 +1,62 @@
 from semantico import AnalizadorSemantico
+from ast import (
+    NodoAsignacion, NodoBloque, NodoIf, NodoWhile,
+    NodoLlamadaProcedimiento, NodoLlamadaFuncion,
+    NodoRead, NodoWrite, NodoPrograma,
+    NodoIdentificador, NodoNumero, NodoBooleano,
+    NodoOperacionBinaria, NodoOperacionUnaria, NodoExpresion
+)
 
 semantico = AnalizadorSemantico()
+# Variable global para almacenar el AST raíz
+ast_raiz = None
+
+def inferir_tipo(nodo):
+    """Infiere el tipo de un nodo AST."""
+    if nodo is None:
+        return None
+    
+    # Si el nodo ya tiene un atributo tipo, usarlo
+    if hasattr(nodo, 'tipo'):
+        return nodo.tipo
+    
+    # Inferir según el tipo de nodo
+    if nodo.tipo_nodo == 'identificador':
+        # Buscar en tabla de símbolos
+        simbolo = semantico.tabla_simbolos.buscar(nodo.nombre)
+        if simbolo:
+            return simbolo['tipo']
+        return None
+    elif nodo.tipo_nodo == 'numero':
+        return 'integer'
+    elif nodo.tipo_nodo == 'booleano':
+        return 'boolean'
+    elif nodo.tipo_nodo == 'operacion_binaria':
+        # Inferir desde los operandos
+        tipo_izq = inferir_tipo(nodo.izquierda)
+        tipo_der = inferir_tipo(nodo.derecha)
+        if tipo_izq and tipo_der:
+            # Usar verificación semántica para obtener el tipo resultante
+            try:
+                return semantico.verificar_operacion_binaria(0, 0, nodo.operador, tipo_izq, tipo_der)
+            except:
+                return None
+    elif nodo.tipo_nodo == 'operacion_unaria':
+        tipo_op = inferir_tipo(nodo.operando)
+        if tipo_op:
+            try:
+                return semantico.verificar_operacion_unaria(0, 0, nodo.operador, tipo_op)
+            except:
+                return None
+    elif nodo.tipo_nodo == 'expresion':
+        return inferir_tipo(nodo.expresion)
+    elif nodo.tipo_nodo == 'llamada_funcion':
+        # El tipo ya debería estar en el nodo
+        if hasattr(nodo, 'tipo'):
+            return nodo.tipo
+        return None
+    
+    return None
 
 # Variables globales para almacenar información del token actual
 lexer = None
@@ -11,11 +67,12 @@ lookahead_col = None
 
 def sintactico(lexer_instance):
     """Initialize the global lexer and start parsing."""
-    global lexer, lookahead, lookahead_value, lookahead_line, lookahead_col
+    global lexer, lookahead, lookahead_value, lookahead_line, lookahead_col, ast_raiz
     lexer = lexer_instance
     token_info = next_token()
     lookahead, lookahead_value, lookahead_line, lookahead_col = token_info
-    programa()
+    ast_raiz = programa()
+    return ast_raiz
 
 def next_token():
     """Fetch the next token from the global lexer."""
@@ -41,8 +98,9 @@ def programa():
     match('ident')
     semantico.tabla_simbolos.insertar(program_name, 'program', 'programa', lookahead_col, lookahead_line)
     match('punto_coma')
-    bloque()
+    nodo_bloque = bloque()
     match('punto')
+    return NodoPrograma(program_name, nodo_bloque)
 
 def bloque():
     """<bloque> ::= <parte declaraciones variables> <parte declaraciones subrutinas> <sentencia compuesta>
@@ -53,12 +111,12 @@ def bloque():
         parte_declaraciones_variables()
         if lookahead in ['procedure', 'function']:
             parte_declaraciones_subrutinas()
-        sentencia_compuesta()
+        return sentencia_compuesta()
     elif lookahead in ['procedure', 'function']:
         parte_declaraciones_subrutinas()
-        sentencia_compuesta()
+        return sentencia_compuesta()
     else:
-        sentencia_compuesta()
+        return sentencia_compuesta()
 
 def parte_declaraciones_variables():
     """<parte declaraciones variables> ::= var <declaracion de variables> <mas declaraciones>"""
@@ -224,33 +282,37 @@ def seccion_de_parametros_formales():
 def sentencia_compuesta():
     """<sentencia compuesta> ::= begin <sentencia> <mas sentencias> end"""
     match('begin')
-    sentencia()
-    mas_sentencias()
+    sentencias = [sentencia()]
+    sentencias.extend(mas_sentencias())
     match('end')
+    return NodoBloque(sentencias)
 
 def mas_sentencias():
     """<mas sentencias> ::= ; <sentencia> <mas sentencias> | λ"""
+    sentencias = []
     if lookahead == 'punto_coma':
         match('punto_coma')
-        sentencia()
-        mas_sentencias()
+        if lookahead != 'end':  # No hay más sentencias si encontramos 'end'
+            sentencias.append(sentencia())
+            sentencias.extend(mas_sentencias())
+    return sentencias
 
 def sentencia():
     """<sentencia> ::= <asignacion> | <llamada a procedimiento> | <sentencia compuesta> | 
                        <sentencia condicional> | <sentencia repetitiva> | <sentencia lectura> | 
                        <sentencia escritura>"""
     if lookahead == 'ident':
-        sentencia_ident()
+        return sentencia_ident()
     elif lookahead == 'begin':
-        sentencia_compuesta()
+        return sentencia_compuesta()
     elif lookahead == 'if':
-        sentencia_condicional()
+        return sentencia_condicional()
     elif lookahead == 'while':
-        sentencia_repetitiva()
+        return sentencia_repetitiva()
     elif lookahead == 'read':
-        sentencia_lectura()
+        return sentencia_lectura()
     elif lookahead == 'write':
-        sentencia_escritura()
+        return sentencia_escritura()
     else:
         raise SyntaxError(
             f"Syntax error at line {lookahead_line}, column {lookahead_col}: "
@@ -261,57 +323,80 @@ def sentencia_ident():
     """<sentencia ident> ::= := <expresion> | <parte de parametros actuales>"""
     ident_name = lookahead_value
     match('ident')
-    
+
     if lookahead == 'asignacion':
-        # If its in a function and the identifier matches the function name, it's a return assignment
+        # Function return assignment (e.g., f := expr inside function f)
         if semantico.funcion_actual and ident_name == semantico.funcion_actual:
             # Function return assignment
             match('asignacion')
-            expr_type = expresion()
+            nodo_expr = expresion()
+            expr_type = getattr(nodo_expr, 'tipo', inferir_tipo(nodo_expr))
             semantico.verificar_retorno_funcion(lookahead_line, lookahead_col, expr_type)
+            return NodoAsignacion(NodoIdentificador(ident_name), nodo_expr)
         else:
             # Regular variable assignment
             variable = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name, 'variable')
             match('asignacion')
-            expr_type = expresion()
-            semantico.verificar_asignacion(lookahead_line, lookahead_col, variable, expr_type)
+            nodo_expr = expresion()
+            expr_type = getattr(nodo_expr, 'tipo', inferir_tipo(nodo_expr))
+            semantico.verificar_asignacion(
+                lookahead_line, lookahead_col, variable, expr_type
+            )
+            return NodoAsignacion(NodoIdentificador(ident_name), nodo_expr)
     else:
         # Es una llamada a procedimiento/función
         funcion = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name)
         if funcion['categoria'] not in ['procedimiento', 'funcion']:
-            raise SyntaxError(f"Semantic error at line {lookahead_line}, column {lookahead_col}: '{ident_name}' is not a procedure or function")
-        
-        parametros_tipos = parte_parametros_actuales()
-        
+            raise SyntaxError(
+                f"Semantic error at line {lookahead_line}, column {lookahead_col}: "
+                f"'{ident_name}' is not a procedure or function"
+            )
+
+        # Get parameter nodes
+        nodos_parametros = parte_parametros_actuales()
+        parametros_tipos = [inferir_tipo(p) for p in nodos_parametros]
+
         if funcion['categoria'] == 'funcion':
-            semantico.verificar_llamada_funcion(lookahead_line, lookahead_col, funcion, parametros_tipos)
+            semantico.verificar_llamada_funcion(
+                lookahead_line, lookahead_col, funcion, parametros_tipos
+            )
+            return NodoLlamadaFuncion(ident_name, nodos_parametros)
         else:
-            semantico.verificar_llamada_procedimiento(lookahead_line, lookahead_col, funcion, parametros_tipos)
+            semantico.verificar_llamada_procedimiento(
+                lookahead_line, lookahead_col, funcion, parametros_tipos
+            )
+            return NodoLlamadaProcedimiento(ident_name, nodos_parametros)
+
 
 def sentencia_condicional():
     """<sentencia condicional> ::= if <expresion> then <sentencia> <parte else>"""
     match('if')
-    expr_type = expresion()
+    nodo_condicion = expresion()
+    expr_type = inferir_tipo(nodo_condicion)
     if expr_type != 'boolean':
         raise SyntaxError(f"Semantic error at line {lookahead_line}, column {lookahead_col}: the 'if' condition must be boolean")
     match('then')
-    sentencia()
-    parte_else()
+    nodo_cuerpo_true = sentencia()
+    nodo_cuerpo_false = parte_else()
+    return NodoIf(nodo_condicion, nodo_cuerpo_true, nodo_cuerpo_false)
 
 def parte_else():
     """<parte else> ::= else <sentencia> | λ"""
     if lookahead == 'else':
         match('else')
-        sentencia()
+        return sentencia()
+    return None
 
 def sentencia_repetitiva():
     """<sentencia repetitiva> ::= while <expresion> do <sentencia>"""
     match('while')
-    expr_type = expresion()
+    nodo_condicion = expresion()
+    expr_type = inferir_tipo(nodo_condicion)
     if expr_type != 'boolean':
         raise SyntaxError(f"Semantic error at line {lookahead_line}, column {lookahead_col}: the 'while' condition must be boolean")
     match('do')
-    sentencia()
+    nodo_cuerpo = sentencia()
+    return NodoWhile(nodo_condicion, nodo_cuerpo)
 
 def sentencia_lectura():
     """<sentencia lectura> ::= read ( <identificador> )"""
@@ -323,6 +408,7 @@ def sentencia_lectura():
     if variable['tipo'] != 'integer':
         raise SyntaxError(f"Semantic error at line {lookahead_line}, column {lookahead_col}: only integer variables can be read, '{var_name}' is {variable['tipo']} type")
     match('parentesis_der')
+    return NodoRead(NodoIdentificador(var_name))
 
 def sentencia_escritura():
     """<sentencia escritura> ::= write ( <identificador> | <numero> )"""
@@ -333,12 +419,16 @@ def sentencia_escritura():
         var_name = lookahead_value
         match('ident')
         semantico.verificar_declaracion(lookahead_line, lookahead_col, var_name, 'variable')
+        nodo_expr = NodoIdentificador(var_name)
     elif lookahead == 'numero':
+        num_value = lookahead_value
         match('numero')
+        nodo_expr = NodoNumero(int(num_value))
     else:
         raise SyntaxError(f"Se esperaba identificador o número en línea {lookahead_line}, columna {lookahead_col}")
 
     match('parentesis_der')
+    return NodoWrite(nodo_expr)
 
 def parte_parametros_actuales():
     """<parte parametros actuales> ::= ( <resto parametros actuales> | λ"""
@@ -353,37 +443,42 @@ def resto_parametros_actuales():
         match('parentesis_der')
         return []
     else:
-        parametros_tipos = lista_de_expresiones()
+        nodos_parametros = lista_de_expresiones()
         match('parentesis_der')
-        return parametros_tipos
+        return nodos_parametros
 
 def lista_de_expresiones():
     """<lista de expresiones> ::= <expresion> <mas expresiones>"""
-    tipos = [expresion()]
-    tipos.extend(mas_expresiones())
-    return tipos
+    nodos = [expresion()]
+    nodos.extend(mas_expresiones())
+    return nodos
 
 def mas_expresiones():
     """<mas expresiones> ::= , <expresion> <mas expresiones> | λ"""
-    tipos = []
+    nodos = []
     if lookahead == 'coma':
         match('coma')
-        tipos.append(expresion())
-        tipos.extend(mas_expresiones())
-    return tipos
+        nodos.append(expresion())
+        nodos.extend(mas_expresiones())
+    return nodos
 
 def expresion():
     """<expresion> ::= <expresion simple> <parte relacion>"""
-    tipo_simple = expresion_simple()
-    return parte_relacion(tipo_simple)
+    nodo_simple = expresion_simple()
+    return parte_relacion(nodo_simple)
 
-def parte_relacion(tipo_izq):
+def parte_relacion(nodo_izq):
     """<parte relacion> ::= <relacion> <expresion simple> | λ"""
     if lookahead in ['=', '<>', '<', '>', '<=', '>=']:
         op = relacion()
-        tipo_der = expresion_simple()
-        return semantico.verificar_operacion_binaria(lookahead_line, lookahead_col, op, tipo_izq, tipo_der)
-    return tipo_izq
+        nodo_der = expresion_simple()
+        tipo_izq = inferir_tipo(nodo_izq)
+        tipo_der = inferir_tipo(nodo_der)
+        tipo_resultado = semantico.verificar_operacion_binaria(lookahead_line, lookahead_col, op, tipo_izq, tipo_der)
+        nodo_resultado = NodoOperacionBinaria(nodo_izq, op, nodo_der)
+        nodo_resultado.tipo = tipo_resultado
+        return nodo_resultado
+    return nodo_izq
 
 def relacion():
     """<relacion> ::= = | <> | < | > | <= | >="""
@@ -401,12 +496,16 @@ def expresion_simple():
     """<expresion simple> ::= <signo> <termino> <resto expresion simple> | <termino> <resto expresion simple>"""
     if lookahead in ['+', '-']:
         op = signo()
-        tipo_term = termino()
+        nodo_term = termino()
+        tipo_term = inferir_tipo(nodo_term)
         tipo_final = semantico.verificar_operacion_unaria(lookahead_line, lookahead_col, op, tipo_term)
+        nodo_unario = NodoOperacionUnaria(op, nodo_term)
+        nodo_unario.tipo = tipo_final
+        nodo_final = nodo_unario
     else:
-        tipo_final = termino()
+        nodo_final = termino()
         
-    return resto_expresion_simple(tipo_final)
+    return resto_expresion_simple(nodo_final)
 
 def signo():
     """<signo> ::= + | -"""
@@ -420,14 +519,18 @@ def signo():
             "expected '+' or '-'"
         )
 
-def resto_expresion_simple(tipo_actual):
+def resto_expresion_simple(nodo_actual):
     """<resto expresion simple> ::= <op aditivo> <termino> <resto expresion simple> | λ"""
     if lookahead in ['+', '-', 'or']:
         op = op_aditivo()
-        tipo_term = termino()
+        nodo_term = termino()
+        tipo_actual = inferir_tipo(nodo_actual)
+        tipo_term = inferir_tipo(nodo_term)
         nuevo_tipo = semantico.verificar_operacion_binaria(lookahead_line, lookahead_col, op, tipo_actual, tipo_term)
-        return resto_expresion_simple(nuevo_tipo)
-    return tipo_actual
+        nodo_binario = NodoOperacionBinaria(nodo_actual, op, nodo_term)
+        nodo_binario.tipo = nuevo_tipo
+        return resto_expresion_simple(nodo_binario)
+    return nodo_actual
 
 def op_aditivo():
     """<op aditivo> ::= + | - | or"""
@@ -443,17 +546,21 @@ def op_aditivo():
 
 def termino():
     """<termino> ::= <factor> <resto termino>"""
-    tipo_fact = factor()
-    return resto_termino(tipo_fact)
+    nodo_fact = factor()
+    return resto_termino(nodo_fact)
 
-def resto_termino(tipo_actual):
+def resto_termino(nodo_actual):
     """<resto termino> ::= <op multiplicativo> <factor> <resto termino> | λ"""
     if lookahead in ['*', 'div', 'and']:
         op = op_multiplicativo()
-        tipo_fact = factor()
+        nodo_fact = factor()
+        tipo_actual = inferir_tipo(nodo_actual)
+        tipo_fact = inferir_tipo(nodo_fact)
         nuevo_tipo = semantico.verificar_operacion_binaria(lookahead_line, lookahead_col, op, tipo_actual, tipo_fact)
-        return resto_termino(nuevo_tipo)
-    return tipo_actual
+        nodo_binario = NodoOperacionBinaria(nodo_actual, op, nodo_fact)
+        nodo_binario.tipo = nuevo_tipo
+        return resto_termino(nodo_binario)
+    return nodo_actual
 
 def op_multiplicativo():
     """<op multiplicativo> ::= * | div | and"""
@@ -474,21 +581,30 @@ def factor():
         match('ident')
         return factor_identificador(ident_name)
     elif lookahead == 'numero':
+        num_value = lookahead_value
         match('numero')
-        return 'integer'
+        nodo = NodoNumero(int(num_value))
+        nodo.tipo = 'integer'
+        return nodo
     elif lookahead == 'parentesis_izq':
         match('parentesis_izq')
-        tipo_expr = expresion()
+        nodo_expr = expresion()
         match('parentesis_der')
-        return tipo_expr
+        return NodoExpresion(nodo_expr)
     elif lookahead == 'not':
         match('not')
-        tipo_fact = factor()
-        return semantico.verificar_operacion_unaria(lookahead_line, lookahead_col, 'not', tipo_fact)
+        nodo_fact = factor()
+        tipo_fact = inferir_tipo(nodo_fact)
+        tipo_resultado = semantico.verificar_operacion_unaria(lookahead_line, lookahead_col, 'not', tipo_fact)
+        nodo_unario = NodoOperacionUnaria('not', nodo_fact)
+        nodo_unario.tipo = tipo_resultado
+        return nodo_unario
     elif lookahead in ['true', 'false']:
         valor = lookahead
         match(lookahead)
-        return 'boolean'
+        nodo = NodoBooleano(valor)
+        nodo.tipo = 'boolean'
+        return nodo
     else:
         raise SyntaxError(
             f"Syntax error at line {lookahead_line}, column {lookahead_col}: "
@@ -500,9 +616,15 @@ def factor_identificador(ident_name):
     if lookahead == 'parentesis_izq':
         # Es una llamada a función
         funcion = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name, 'funcion')
-        parametros_tipos = parte_parametros_actuales()
-        return semantico.verificar_llamada_funcion(lookahead_line, lookahead_col, funcion, parametros_tipos)
+        nodos_parametros = parte_parametros_actuales()
+        parametros_tipos = [inferir_tipo(p) for p in nodos_parametros]
+        tipo_resultado = semantico.verificar_llamada_funcion(lookahead_line, lookahead_col, funcion, parametros_tipos)
+        nodo = NodoLlamadaFuncion(ident_name, nodos_parametros)
+        nodo.tipo = tipo_resultado
+        return nodo
     else:
         # Es una variable
         variable = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name, 'variable')
-        return variable['tipo']
+        nodo = NodoIdentificador(ident_name)
+        nodo.tipo = variable['tipo']
+        return nodo

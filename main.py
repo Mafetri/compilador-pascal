@@ -1,6 +1,8 @@
 import sys
 from lexico import AnalizadorLexico
 from sintactico import sintactico
+from generadorintermedio import GeneradorCodigoIntermedio
+from semantico import AnalizadorSemantico
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -13,7 +15,19 @@ if __name__ == "__main__":
     analizador.cargar_archivo(input_file)
 
     try:
-        sintactico(analizador)
+        # Análisis sintáctico y semántico (construye AST)
+        ast = sintactico(analizador)
+        
+        # Obtener la tabla de símbolos del analizador semántico
+        from sintactico import semantico
+        tabla_simbolos = semantico.tabla_simbolos
+        
+        # Generar código intermedio
+        generador = GeneradorCodigoIntermedio(tabla_simbolos)
+        generador.generar(ast)
+        
         print('Ok')
+        # Mostrar código intermedio generado
+        generador.imprimir_codigo()
     except SyntaxError as e:
         print(e)
