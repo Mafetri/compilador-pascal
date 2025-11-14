@@ -1,8 +1,8 @@
 import sys
+import os
 from lexico import AnalizadorLexico
 from sintactico import sintactico
 from generador_mepa import GeneradorMEPA
-from semantico import AnalizadorSemantico
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -27,6 +27,12 @@ if __name__ == "__main__":
         generador.generar(ast)
         
         # Mostrar código intermedio generado
-        generador.imprimir_codigo()
+        codigo = generador.obtener_codigo()
+        output_file = os.path.splitext(input_file)[0] + ".mepa"
+        with open(output_file, "w") as f:
+            f.write(codigo)
+
+        print(f"MEPA code saved to: {output_file}")
+
     except SyntaxError as e:
         print(e)

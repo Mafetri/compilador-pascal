@@ -4,7 +4,7 @@ Var
   r2:boolean;
 
 {procedure pru2(p: boolean);}
-procedure pru2(p: integer);
+procedure pru2(p: boolean);
 var r3: integer;
 begin
 

@@ -46,6 +46,10 @@ class GeneradorMEPA:
         for linea in self.codigo_mepa:
             print(linea.strip())
 
+    def obtener_codigo(self):
+        """Devuelve el código MEPA como un único string."""
+        return "\n".join(linea.strip() for linea in self.codigo_mepa)
+
     # --- PASO 1: PRE-CÁLCULO DE NIVELES Y DESPLAZAMIENTOS ---
     
     def precalculo(self, nodo_raiz: NodoPrograma):
@@ -149,7 +153,18 @@ class GeneradorMEPA:
         
         # 3. Para funciones/procedimientos, no necesitan offset
         if simbolo_ts['categoria'] in ('funcion', 'procedimiento'):
-            return {'nivel': None, 'offset': None, 'tipo': simbolo_ts['tipo'], 'categoria': simbolo_ts['categoria']}
+            # Si estamos en el contexto de una asignación a una función, 
+            # necesitamos el offset del slot de retorno
+            if self.ambito_actual_gen == simbolo_ts['nombre'] and simbolo_ts['categoria'] == 'funcion':
+                # Estamos asignando al nombre de la función dentro de su propio cuerpo
+                nombre_ambito = simbolo_ts['nombre']
+                num_params = self.info_params.get(nombre_ambito, 0)
+                offset_retorno = -(num_params + 3)
+                nivel = self.info_niveles[nombre_ambito]
+                return {'nivel': nivel, 'offset': offset_retorno, 'tipo': simbolo_ts['tipo'], 'categoria': simbolo_ts['categoria'], 'nombre': simbolo_ts['nombre']}
+            else:
+                # Uso normal de función/procedimiento (llamada)
+                return {'nivel': None, 'offset': None, 'tipo': simbolo_ts['tipo'], 'categoria': simbolo_ts['categoria'], 'nombre': simbolo_ts['nombre']}
         
         # 4. Verificar que el símbolo tiene offset asignado
         if clave_unica not in self.info_offsets:
@@ -318,17 +333,23 @@ class GeneradorMEPA:
         """Genera código para S -> id := E"""
         
         # 1. Generar código para la expresión E.
-        #    Esto deja el valor de E en el tope de la pila.
         self._generar_recursivo(nodo_asignacion.expresion)
         
-        # 2. Obtener la dirección (nivel, offset) de la variable 'id'
-        #    Esto también maneja la asignación al nombre de la función (valor de retorno)
-        #    porque el pre-cálculo le asignó un offset.
+        # 2. Obtener la información del símbolo
         nombre_var = nodo_asignacion.variable.nombre
         info_var = self.buscar_info_simbolo(nombre_var)
         
-        # 3. Emitir ALVL (Almacenar Valor)
-        self.emitir('ALVL', info_var['nivel'], info_var['offset']) # 
+        # 3. Handle function return assignment specially
+        if info_var['categoria'] == 'funcion':
+            # For function return assignment, use the special return slot offset
+            nombre_ambito = info_var['nombre']  # Function name is the ambit
+            num_params = self.info_params.get(nombre_ambito, 0)
+            offset_retorno = -(num_params + 3)
+            nivel = self.info_niveles[nombre_ambito]
+            self.emitir('ALVL', nivel, offset_retorno)
+        else:
+            # Regular variable assignment
+            self.emitir('ALVL', info_var['nivel'], info_var['offset'])
 
     def generar_if(self, nodo_if):
         """Genera código para if E then S1 [else S2]"""

@@ -4,19 +4,20 @@ Var a: integer;
 
 procedure XX;
 
-	function pru(r:integer):integer;
-	var local: boolean;
-	begin
-	  if (r= 0) then pru:= 1
-	  else
-	     local:= r-1>2; 
-	    a:= pru(a);
-            pru:= 33
-	end
+  function pru(r:integer):integer;
+	  var local: boolean;
+	  begin
+      if (r= 0) then 
+        pru:= 1
+      else
+        local:= r-1>2; 
+        a:= pru(a);
+        pru:= 33
+	  end
 
 begin
     a:= pru(a);
-    pru:= 33
+    pru(33)
 end;
 
 Function factorial(r:integer):integer;
@@ -36,7 +37,7 @@ Begin
 
 
   a:= local;
-  pru:= 33;
+  pru(33);
   local:= pru(33);
   a := factorial(3);
   write(a);
