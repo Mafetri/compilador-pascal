@@ -1,17 +1,17 @@
-Program Conductor_de_Prueba;
+Program ConductordePrueba;
 Var
   c,h,r: integer;
   r2:boolean;
 
-procedure pru2(p: boolean);
-{procedure pru2(p: integer);}
+{procedure pru2(p: boolean);}
+procedure pru2(p: integer);
 var r3: integer;
 begin
 
   {pru:=18}
   r3:= 66; 
-  r := 4;
-end;
+  r := 4
+end
 
 Begin
   read(c);
@@ -22,6 +22,6 @@ Begin
      write(1)
   end
   else
-     write(0);
+     write(0)
 
 End.

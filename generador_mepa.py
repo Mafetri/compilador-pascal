@@ -1,8 +1,6 @@
-# generadormepa.py
-# (Reemplaza a generadorintermedio.py)
-
 from tabla_simbolos import TablaSimbolos
 from ast import * 
+
 class GeneradorMEPA:
     """
     Genera código MEPA (Máquina de Ejecución de PASCAL) a partir de un AST
@@ -41,13 +39,12 @@ class GeneradorMEPA:
 
     def emitir_etiqueta(self, etiqueta: str):
         """Añade una etiqueta MEPA al código."""
-        self.codigo_mepa.append(f"{etiqueta}:")
-        self.emitir('NADA') # Instrucción NADA como blanco del salto [cite: 137]
+        self.codigo_mepa.append(f"{etiqueta} NADA")
 
     def imprimir_codigo(self):
         """Muestra el código MEPA generado de forma legible."""
         for linea in self.codigo_mepa:
-            print(linea)
+            print(linea.strip())
 
     # --- PASO 1: PRE-CÁLCULO DE NIVELES Y DESPLAZAMIENTOS ---
     
@@ -206,14 +203,14 @@ class GeneradorMEPA:
         """Genera el wrapper del programa principal."""
         
         # Prólogo del programa principal
-        self.emitir('INPP') # Inicializar máquina [cite: 243]
+        self.emitir('INPP') # Inicializar máquina 
         num_globales = self.info_locales.get('global', 0)
         if num_globales > 0:
-            self.emitir('RMEM', num_globales) # Reservar memoria para globales [cite: 264]
+            self.emitir('RMEM', num_globales) # Reservar memoria para globales 
         
         # Saltar sobre las definiciones de subrutinas
         etiqueta_main = self.nueva_etiqueta()
-        self.emitir('DSVS', etiqueta_main) # Desviar siempre a main [cite: 114]
+        self.emitir('DSVS', etiqueta_main) # Desviar siempre a main 
         
         # Generar código para las subrutinas declaradas
         if nodo_programa.declaraciones:
@@ -232,8 +229,8 @@ class GeneradorMEPA:
         
         # Epílogo del programa principal
         if num_globales > 0:
-            self.emitir('LMEM', num_globales) # Liberar memoria de globales [cite: 289]
-        self.emitir('PARA') # Parar la máquina [cite: 299]
+            self.emitir('LMEM', num_globales) # Liberar memoria de globales 
+        self.emitir('PARA') # Parar la máquina 
 
     def generar_declaracion_procedimiento(self, nodo_decl):
         """Genera el código para una definición de procedimiento."""
@@ -252,9 +249,9 @@ class GeneradorMEPA:
         
         # --- Prólogo del Procedimiento ---
         self.emitir_etiqueta(etiqueta_proc)
-        self.emitir('ENPR', self.nivel_actual_gen) # Entrar a procedimiento [cite: 256]
+        self.emitir('ENPR', self.nivel_actual_gen) # Entrar a procedimiento 
         if num_locales > 0:
-            self.emitir('RMEM', num_locales) # Reservar memoria local [cite: 264]
+            self.emitir('RMEM', num_locales) # Reservar memoria local 
             
         # Generar código para declaraciones anidadas
         if nodo_decl.declaraciones_internas:
@@ -266,8 +263,8 @@ class GeneradorMEPA:
         
         # --- Epílogo del Procedimiento ---
         if num_locales > 0:
-            self.emitir('LMEM', num_locales) # Liberar memoria local [cite: 289]
-        self.emitir('RTPR', self.nivel_actual_gen, num_params) # Retornar de procedimiento [cite: 293]
+            self.emitir('LMEM', num_locales) # Liberar memoria local 
+        self.emitir('RTPR', self.nivel_actual_gen, num_params) # Retornar de procedimiento 
         
         # Restaurar estado anterior
         self.ambito_actual_gen = ambito_anterior
@@ -290,9 +287,9 @@ class GeneradorMEPA:
         
         # --- Prólogo de la Función ---
         self.emitir_etiqueta(etiqueta_func)
-        self.emitir('ENPR', self.nivel_actual_gen) # Entrar a procedimiento (función) [cite: 256]
+        self.emitir('ENPR', self.nivel_actual_gen) # Entrar a procedimiento (función) 
         if num_locales > 0:
-            self.emitir('RMEM', num_locales) # Reservar memoria local [cite: 264]
+            self.emitir('RMEM', num_locales) # Reservar memoria local 
             
         # Generar código para declaraciones anidadas
         if nodo_decl.declaraciones_internas:
@@ -305,8 +302,8 @@ class GeneradorMEPA:
         # --- Epílogo de la Función ---
         # El valor de retorno ya está en la pila, en el espacio reservado por el llamador
         if num_locales > 0:
-            self.emitir('LMEM', num_locales) # Liberar memoria local [cite: 289]
-        self.emitir('RTPR', self.nivel_actual_gen, num_params) # Retornar (igual que proc) [cite: 293]
+            self.emitir('LMEM', num_locales) # Liberar memoria local 
+        self.emitir('RTPR', self.nivel_actual_gen, num_params) # Retornar (igual que proc) 
         
         # Restaurar estado anterior
         self.ambito_actual_gen = ambito_anterior
@@ -331,7 +328,7 @@ class GeneradorMEPA:
         info_var = self.buscar_info_simbolo(nombre_var)
         
         # 3. Emitir ALVL (Almacenar Valor)
-        self.emitir('ALVL', info_var['nivel'], info_var['offset']) # [cite: 218]
+        self.emitir('ALVL', info_var['nivel'], info_var['offset']) # 
 
     def generar_if(self, nodo_if):
         """Genera código para if E then S1 [else S2]"""
@@ -343,7 +340,7 @@ class GeneradorMEPA:
         etiqueta_false = self.nueva_etiqueta()
         
         # 2. Emitir salto condicional si es falso
-        self.emitir('DSVF', etiqueta_false) # Desviar si es falso [cite: 118]
+        self.emitir('DSVF', etiqueta_false) # Desviar si es falso 
         
         # 3. Código del 'then' (S1.code)
         self._generar_recursivo(nodo_if.cuerpo_true)
@@ -351,7 +348,7 @@ class GeneradorMEPA:
         if nodo_if.cuerpo_false:
             # 4. Si hay 'else', saltar al final
             etiqueta_fin = self.nueva_etiqueta()
-            self.emitir('DSVS', etiqueta_fin) # Desviar siempre [cite: 114]
+            self.emitir('DSVS', etiqueta_fin) # Desviar siempre 
             
             # 5. Etiqueta para el 'false'
             self.emitir_etiqueta(etiqueta_false)
@@ -378,13 +375,13 @@ class GeneradorMEPA:
         # La pila contiene 0 (false) o 1 (true)
         
         # 3. Salir del bucle si es falso
-        self.emitir('DSVF', etiqueta_fin) # [cite: 118]
+        self.emitir('DSVF', etiqueta_fin) # 
         
         # 4. Código del cuerpo (S.code)
         self._generar_recursivo(nodo_while.cuerpo)
         
         # 5. Volver al inicio
-        self.emitir('DSVS', etiqueta_inicio) # [cite: 114]
+        self.emitir('DSVS', etiqueta_inicio) # 
         
         # 6. Etiqueta de salida del bucle
         self.emitir_etiqueta(etiqueta_fin)
@@ -399,17 +396,17 @@ class GeneradorMEPA:
         
         # 2. Emitir la llamada
         etiqueta_proc = nodo_call.nombre.lower()
-        self.emitir('LLPR', etiqueta_proc) # Llamar a procedimiento [cite: 258]
+        self.emitir('LLPR', etiqueta_proc) # Llamar a procedimiento 
 
     def generar_read(self, nodo_read):
         """Genera código para read(id)"""
         # 1. Leer valor de entrada y apilarlo
-        self.emitir('LEER') # [cite: 170]
+        self.emitir('LEER') # 
         
         # 2. Almacenar el valor apilado en la variable
         nombre_var = nodo_read.variable.nombre
         info_var = self.buscar_info_simbolo(nombre_var)
-        self.emitir('ALVL', info_var['nivel'], info_var['offset']) # [cite: 218]
+        self.emitir('ALVL', info_var['nivel'], info_var['offset']) # 
     
     def generar_write(self, nodo_write):
         """Genera código para write(E)"""
@@ -417,7 +414,7 @@ class GeneradorMEPA:
         self._generar_recursivo(nodo_write.expresion)
         
         # 2. Imprimir el valor del tope de la pila
-        self.emitir('IMPR') # [cite: 174]
+        self.emitir('IMPR') # 
     
     # --- Generadores de Expresiones (E) ---
     
@@ -431,17 +428,17 @@ class GeneradorMEPA:
         info_var = self.buscar_info_simbolo(nodo_id.nombre)
         
         # 2. Emitir APVL (Apilar Valor)
-        self.emitir('APVL', info_var['nivel'], info_var['offset']) # [cite: 216]
+        self.emitir('APVL', info_var['nivel'], info_var['offset']) # 
 
     def generar_numero(self, nodo_num):
         """Genera código para E -> numero"""
-        self.emitir('APCT', nodo_num.valor) # Apilar constante [cite: 71]
+        self.emitir('APCT', nodo_num.valor) # Apilar constante 
         
     def generar_booleano(self, nodo_bool):
         """Genera código para E -> true | false"""
-        # MEPA representa true=1 y false=0 [cite: 66]
+        # MEPA representa true=1 y false=0 
         valor = 1 if nodo_bool.valor == 'true' else 0
-        self.emitir('APCT', valor) # [cite: 71]
+        self.emitir('APCT', valor) # 
 
     def generar_operacion_binaria(self, nodo_op):
         """Genera código para E -> E1 op E2"""
@@ -457,29 +454,29 @@ class GeneradorMEPA:
         # 3. Emitir la instrucción MEPA correspondiente
         op = nodo_op.operador
         if op == '+':
-            self.emitir('SUMA') # [cite: 71]
+            self.emitir('SUMA') # 
         elif op == '-':
-            self.emitir('SUST') # [cite: 71]
+            self.emitir('SUST') # 
         elif op == '*':
-            self.emitir('MULT') # [cite: 71]
+            self.emitir('MULT') # 
         elif op == 'div':
-            self.emitir('DIVI') # [cite: 71]
+            self.emitir('DIVI') # 
         elif op == 'or':
-            self.emitir('DISJ') # Disyunción [cite: 71]
+            self.emitir('DISJ') # Disyunción 
         elif op == 'and':
-            self.emitir('CONJ') # Conjunción [cite: 71]
+            self.emitir('CONJ') # Conjunción 
         elif op == '=':
-            self.emitir('CMIG') # Comparar igual [cite: 71]
+            self.emitir('CMIG') # Comparar igual 
         elif op == '<>':
-            self.emitir('CMDG') # Comparar desigual [cite: 76]
+            self.emitir('CMDG') # Comparar desigual 
         elif op == '<':
-            self.emitir('CMME') # Comparar menor [cite: 71]
+            self.emitir('CMME') # Comparar menor 
         elif op == '>':
-            self.emitir('CMMA') # Comparar mayor [cite: 71]
+            self.emitir('CMMA') # Comparar mayor 
         elif op == '<=':
-            self.emitir('CMNI') # Comparar menor o igual [cite: 77]
+            self.emitir('CMNI') # Comparar menor o igual 
         elif op == '>=':
-            self.emitir('CMYI') # Comparar mayor o igual [cite: 78]
+            self.emitir('CMYI') # Comparar mayor o igual 
         else:
             raise ValueError(f"Operador binario MEPA no reconocido: {op}")
         
@@ -496,9 +493,9 @@ class GeneradorMEPA:
         # 2. Emitir la instrucción MEPA
         op = nodo_op.operador
         if op == '-':
-            self.emitir('UMEN') # Menos unario [cite: 71]
+            self.emitir('UMEN') # Menos unario 
         elif op == 'not':
-            self.emitir('NEGA') # Negación lógica [cite: 71]
+            self.emitir('NEGA') # Negación lógica 
         else:
             raise ValueError(f"Operador unario MEPA no reconocido: {op}")
             
@@ -508,7 +505,7 @@ class GeneradorMEPA:
         """Genera código para E -> id(Elist)"""
         
         # 1. Reservar espacio en la pila para el valor de retorno
-        self.emitir('RMEM', 1) # [cite: 433]
+        self.emitir('RMEM', 1) # 
         
         # 2. Evaluar parámetros y apilarlos
         if nodo_call.parametros:
@@ -517,6 +514,6 @@ class GeneradorMEPA:
         
         # 3. Emitir la llamada
         etiqueta_func = nodo_call.nombre.lower()
-        self.emitir('LLPR', etiqueta_func) # [cite: 258]
+        self.emitir('LLPR', etiqueta_func) # 
         
         # Al regresar, el valor de retorno está en el tope de la pila

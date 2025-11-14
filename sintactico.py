@@ -9,7 +9,6 @@ from ast import (
 )
 
 semantico = AnalizadorSemantico()
-# Variable global para almacenar el AST raíz
 ast_raiz = None
 
 def inferir_tipo(nodo):
