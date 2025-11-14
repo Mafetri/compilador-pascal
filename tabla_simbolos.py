@@ -18,7 +18,8 @@ class TablaSimbolos:
             'tipo': tipo,                   # Tipo del símbolo (integer, boolean, etc.)
             'categoria': categoria,         # Categoría (variable, funcion, procedimiento)
             'ambito': ambito,               # Ámbito (global, local, etc.)
-            'parametros': parametros or []  # Paraámetros si es función o procedimiento: ej p(a: integer) { 'nombre': 'a', 'tipo': 'integer' }
+            'parametros': parametros or [], # Paraámetros si es función o procedimiento: ej p(a: integer) { 'nombre': 'a', 'tipo': 'integer' }
+            'nombre_original_funcion': None # MEPA: para identificar la asignación de retorno
         }
         
     def buscar(self, nombre, ambito=None):

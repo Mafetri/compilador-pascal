@@ -212,7 +212,7 @@ def declaracion_de_procedimiento():
     # Procesar parámetros
     parametros = parte_parametros_formales()
     semantico.tabla_simbolos.insertar(proc_name, 'void', 'procedimiento', lookahead_col, lookahead_line, 'global', parametros)
-    
+
     match('punto_coma')
     
     # bloque() ahora devuelve una tupla
@@ -246,7 +246,7 @@ def declaracion_de_funcion():
     semantico.retorno_encontrado = False  # Track if return assignment was found
     
     semantico.tabla_simbolos.insertar(func_name, return_type, 'funcion', lookahead_col, lookahead_line, 'global', parametros)
-    
+    semantico.tabla_simbolos.insertar(func_name, return_type, 'variable', lookahead_col, lookahead_line)
     match('punto_coma')
 
     declaraciones_internas, nodo_bloque_func = bloque()    
@@ -343,6 +343,8 @@ def sentencia_ident():
         if semantico.funcion_actual and ident_name == semantico.funcion_actual:
             # Function return assignment
             match('asignacion')
+            simbolo_var = semantico.verificar_declaracion(lookahead_line, lookahead_col, ident_name, 'variable')
+            simbolo_var['nombre_original_funcion'] = semantico.funcion_actual
             nodo_expr = expresion()
             expr_type = getattr(nodo_expr, 'tipo', inferir_tipo(nodo_expr))
             semantico.verificar_retorno_funcion(lookahead_line, lookahead_col, expr_type)

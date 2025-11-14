@@ -1,7 +1,7 @@
 import sys
 from lexico import AnalizadorLexico
 from sintactico import sintactico
-from generadorintermedio import GeneradorCodigoIntermedio
+from generador_mepa import GeneradorMEPA
 from semantico import AnalizadorSemantico
 
 if __name__ == "__main__":
@@ -23,7 +23,7 @@ if __name__ == "__main__":
         tabla_simbolos = semantico.tabla_simbolos
         
         # Generar código intermedio
-        generador = GeneradorCodigoIntermedio(tabla_simbolos)
+        generador = GeneradorMEPA(tabla_simbolos)
         generador.generar(ast)
         
         # Mostrar código intermedio generado
