@@ -19,6 +19,7 @@ palabras_reservadas = {
     'and': ('oper_logico', 'and'),
     'not': ('oper_logico', 'not'),
     'true': 'true',
+    'div': 'div',
     'false': 'false'
 }
 
